@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Services\Payments\FakePaymentGateway;
-use App\Services\Payments\PaymentGatewayInterface;
+use App\Payments\Gateways\FakePaymentGateway;
+use App\Payments\Gateways\PaymentGatewayInterface;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider

@@ -1,16 +1,16 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CreditNoteController;
-use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\DiscountController;
-use App\Http\Controllers\Api\ItemController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\ReceiptController;
-use App\Http\Controllers\Api\SaleController;
-use App\Http\Controllers\Api\ShiftController;
-use App\Http\Controllers\Api\TerminalController;
-use App\Http\Controllers\Api\TillController;
+use App\Auth\AuthController;
+use App\CreditNotes\CreditNoteController;
+use App\Customers\CustomerController;
+use App\Discounts\DiscountController;
+use App\Items\ItemController;
+use App\Payments\PaymentController;
+use App\Receipts\ReceiptController;
+use App\Sales\SaleController;
+use App\Shifts\ShiftController;
+use App\Shifts\TillController;
+use App\Terminals\TerminalController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

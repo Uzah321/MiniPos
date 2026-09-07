@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Coupon;
-use App\Models\Customer;
-use App\Models\Item;
-use App\Models\Promotion;
+use App\Customers\Customer;
+use App\Discounts\Coupon;
+use App\Discounts\Promotion;
+use App\Items\Item;
 use App\Models\Store;
-use App\Models\Terminal;
 use App\Models\User;
+use App\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

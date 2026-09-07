@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Enums\SaleStatus;
-use App\Models\Customer;
-use App\Models\Item;
+use App\Customers\Customer;
+use App\Items\Item;
 use App\Models\Store;
-use App\Models\Terminal;
 use App\Models\User;
+use App\Sales\SaleStatus;
+use App\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
