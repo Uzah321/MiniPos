@@ -1,0 +1,1021 @@
+{
+  "info": {
+    "_postman_id": "5f2a9b1e-7c3d-4e2a-9a1b-3c8d6f0a2b11",
+    "name": "SimbisaPOS API",
+    "description": "Front POS backend - all 67 endpoints across auth, terminals, shifts/tills, items, tables, sales, payments, receipts, kitchen orders, customers, discounts, credit notes/returns, and offline sync.\n\nSetup:\n1. Import the companion environment file and select it.\n2. Run Auth > Login (adjust login/credential/terminal_id first via Terminals > Register Terminal, then create a user via seeders/tinker).\n3. The Login request's test script saves the token into {{token}} automatically; every other request uses it via collection-level Bearer auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api/v1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.environment.set('token', body.token);",
+                  "    pm.environment.set('user_id', body.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"CSH100\",\n  \"credential\": \"1111\",\n  \"terminal_id\": {{terminal_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Public. `login` accepts employee_code or email; `credential` accepts the password or PIN."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Terminals",
+      "item": [
+        {
+          "name": "Register Terminal",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registration_code\": \"TERM-TEST-001\",\n  \"store_id\": {{store_id}},\n  \"name\": \"Front Counter 1\",\n  \"app_version\": \"1.0.0\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/terminals/register", "host": ["{{base_url}}"], "path": ["terminals", "register"] },
+            "description": "Public. Idempotent by (registration_code, store_id)."
+          }
+        },
+        {
+          "name": "Terminal Status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/terminals/{{terminal_id}}/status", "host": ["{{base_url}}"], "path": ["terminals", "{{terminal_id}}", "status"] }
+          }
+        },
+        {
+          "name": "Peripheral Check",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checks\": [\n    { \"peripheral\": \"scanner\", \"status\": \"ok\" },\n    { \"peripheral\": \"receipt_printer\", \"status\": \"ok\" },\n    { \"peripheral\": \"cash_drawer\", \"status\": \"ok\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/terminals/{{terminal_id}}/peripheral-check", "host": ["{{base_url}}"], "path": ["terminals", "{{terminal_id}}", "peripheral-check"] },
+            "description": "peripheral must be one of: scanner, receipt_printer, cash_drawer, payment_terminal, customer_display, kitchen_printer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shifts",
+      "item": [
+        {
+          "name": "Open Shift",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('shift_id', pm.response.json().shift.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminal_id\": {{terminal_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/shifts/open", "host": ["{{base_url}}"], "path": ["shifts", "open"] },
+            "description": "Rejects if the terminal already has an active shift."
+          }
+        },
+        {
+          "name": "Reassign Terminal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminal_id\": {{terminal_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/shifts/{{shift_id}}/reassign-terminal", "host": ["{{base_url}}"], "path": ["shifts", "{{shift_id}}", "reassign-terminal"] },
+            "description": "Terminal unavailable: move an open shift to a different terminal in the same store."
+          }
+        },
+        {
+          "name": "Close Shift",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/shifts/{{shift_id}}/close", "host": ["{{base_url}}"], "path": ["shifts", "{{shift_id}}", "close"] },
+            "description": "Requires every till on the shift closed, and no active basket or unresolved payment (unless placed on exception hold)."
+          }
+        },
+        {
+          "name": "Z Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/shifts/{{shift_id}}/z-report", "host": ["{{base_url}}"], "path": ["shifts", "{{shift_id}}", "z-report"] },
+            "description": "Final end-of-shift reconciliation. Only available once the shift is closed."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tills",
+      "item": [
+        {
+          "name": "Open Till",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('till_id', pm.response.json().till.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shift_id\": \"{{shift_id}}\",\n  \"opening_float\": 200,\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/open", "host": ["{{base_url}}"], "path": ["tills", "open"] },
+            "description": "manager_pin only required if opening_float >= pos.till_open_manager_threshold (default 500)."
+          }
+        },
+        {
+          "name": "No-Sale Drawer Open",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Checking for change\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/no-sale", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "no-sale"] },
+            "description": "Always requires manager approval. Never changes expected cash."
+          }
+        },
+        {
+          "name": "Paid In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"reason\": \"Float top-up from safe\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/paid-in", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "paid-in"] }
+          }
+        },
+        {
+          "name": "Paid Out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 30,\n  \"reason\": \"Cleaning supplies\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/paid-out", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "paid-out"] }
+          }
+        },
+        {
+          "name": "Cash Drop",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/cash-drop", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "cash-drop"] }
+          }
+        },
+        {
+          "name": "X Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/x-report", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "x-report"] },
+            "description": "Interim totals without closing anything."
+          }
+        },
+        {
+          "name": "Count Drawer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"counted_amount\": 250\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/count", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "count"] },
+            "description": "A variance at/beyond pos.till_variance_manager_threshold (default 5) blocks the shift on manager review."
+          }
+        },
+        {
+          "name": "Resolve Variance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"explanation\": \"Till was short due to a miscount at open\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/resolve-variance", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "resolve-variance"] }
+          }
+        },
+        {
+          "name": "Close Till",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/tills/{{till_id}}/close", "host": ["{{base_url}}"], "path": ["tills", "{{till_id}}", "close"] },
+            "description": "Requires the till counted, and any variance resolved."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Search Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/items?search=burger",
+              "host": ["{{base_url}}"],
+              "path": ["items"],
+              "query": [{ "key": "search", "value": "burger" }]
+            }
+          }
+        },
+        {
+          "name": "Price Enquiry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/items/price-enquiry/{{item_code}}", "host": ["{{base_url}}"], "path": ["items", "price-enquiry", "{{item_code}}"] },
+            "description": "{{item_code}} is a SKU or barcode."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tables",
+      "item": [
+        {
+          "name": "List Tables",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/tables", "host": ["{{base_url}}"], "path": ["tables"] }
+          }
+        },
+        {
+          "name": "Occupy Table",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guest_count\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/occupy", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "occupy"] }
+          }
+        },
+        {
+          "name": "Transfer Table",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_table_id\": {{to_table_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/transfer", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "transfer"] }
+          }
+        },
+        {
+          "name": "Merge Tables",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_table_ids\": [{{to_table_id}}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/merge", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "merge"] },
+            "description": "{{table_id}} is the destination; from_table_ids merge into it."
+          }
+        },
+        {
+          "name": "Split Bill",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_id\": \"{{sale_id}}\",\n  \"lines\": [\n    { \"sale_line_id\": \"{{line_id}}\", \"quantity\": 1 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/split", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "split"] },
+            "description": "Omit quantity to move a line's entire quantity."
+          }
+        },
+        {
+          "name": "Move Item Between Guests",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_sale_id\": \"{{sale_id}}\",\n  \"to_sale_id\": \"{{sale_id_2}}\",\n  \"sale_line_id\": \"{{line_id}}\",\n  \"quantity\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/move-item", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "move-item"] }
+          }
+        },
+        {
+          "name": "Apply Service Charge",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_id\": \"{{sale_id}}\",\n  \"rate\": 0.10\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/service-charge", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "service-charge"] },
+            "description": "Omit rate to use the store default (pos.service_charge_rate)."
+          }
+        },
+        {
+          "name": "Add Tip",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_id\": \"{{sale_id}}\",\n  \"amount\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/tip", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "tip"] }
+          }
+        },
+        {
+          "name": "Request Bill",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/bill-request", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "bill-request"] }
+          }
+        },
+        {
+          "name": "Close Table",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/tables/{{table_id}}/close", "host": ["{{base_url}}"], "path": ["tables", "{{table_id}}", "close"] },
+            "description": "Requires no unsettled sale on the table."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Start Sale",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('sale_id', pm.response.json().sale.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminal_id\": {{terminal_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales", "host": ["{{base_url}}"], "path": ["sales"] },
+            "description": "Add \"table_id\": {{table_id}} for dine-in (table must already be Occupied). Requires an open shift + till."
+          }
+        },
+        {
+          "name": "Show Sale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}"] }
+          }
+        },
+        {
+          "name": "Add Line",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('line_id', pm.response.json().line.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": {{item_id}},\n  \"quantity\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/lines", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "lines"] },
+            "description": "Alternatively supply sku or barcode instead of item_id."
+          }
+        },
+        {
+          "name": "Update Line Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/lines/{{line_id}}", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "lines", "{{line_id}}"] }
+          }
+        },
+        {
+          "name": "Remove Line",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed mind\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/lines/{{line_id}}", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "lines", "{{line_id}}"] },
+            "description": "manager_pin only required once the line's value reaches pos.line_removal_manager_threshold."
+          }
+        },
+        {
+          "name": "Void Sale",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer left without paying\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/void", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "void"] },
+            "description": "Only before the sale is paid/completed. Cancels any pending/unknown payment first."
+          }
+        },
+        {
+          "name": "Recover Interrupted Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolve\": \"approved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/recover", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "recover"] },
+            "description": "resolve is optional (approved|declined); a real provider wouldn't need it, only the fake gateway does."
+          }
+        },
+        {
+          "name": "Exception Hold",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Card timed out, holding for reconciliation with the processor\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/exception-hold", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "exception-hold"] },
+            "description": "Only valid when the sale has an unresolved (Unknown) payment attached."
+          }
+        },
+        {
+          "name": "Send to Kitchen",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const order = pm.response.json().kitchen_order;",
+                  "    pm.environment.set('kitchen_order_id', order.id);",
+                  "    if (order.lines && order.lines.length) {",
+                  "        pm.environment.set('kitchen_order_line_id', order.lines[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/kitchen-orders", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "kitchen-orders"] },
+            "description": "Sends only sale lines not already routed. Safe to call again after adding items."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/payments", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "payments"] }
+          }
+        },
+        {
+          "name": "Take Payment (Cash)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('payment_id', pm.response.json().payment.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tender_type\": \"cash\",\n  \"idempotency_key\": \"{{$guid}}\",\n  \"amount\": 10,\n  \"amount_tendered\": 20\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/payments", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "payments"] },
+            "description": "tender_type: cash|card|mobile_qr|store_credit. For card/mobile, add \"simulate\": \"decline\"|\"timeout\"|\"commit_failure\" to test failure paths."
+          }
+        },
+        {
+          "name": "Take Payment (Card, simulate timeout)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tender_type\": \"card\",\n  \"idempotency_key\": \"{{$guid}}\",\n  \"amount\": 10,\n  \"simulate\": \"timeout\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/payments", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "payments"] },
+            "description": "Only the fake gateway (current scaffold) supports \"simulate\". Produces a 202 with an Unknown payment, useful for testing Recover / Exception Hold."
+          }
+        },
+        {
+          "name": "Query Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolve\": \"approved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/payments/{{payment_id}}/query", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "payments", "{{payment_id}}", "query"] },
+            "description": "Only works on a payment currently Unknown."
+          }
+        },
+        {
+          "name": "Cancel Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed tender\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/payments/{{payment_id}}/cancel", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "payments", "{{payment_id}}", "cancel"] },
+            "description": "Only while the attempt is Pending or Unknown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "item": [
+        {
+          "name": "Show Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/receipt", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "receipt"] },
+            "description": "Only available once the sale is Completed."
+          }
+        },
+        {
+          "name": "Reprint Receipt",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer lost original receipt\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/receipt/reprint", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "receipt", "reprint"] },
+            "description": "Always marked as a reprint copy and audited."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kitchen Orders",
+      "item": [
+        {
+          "name": "Show Kitchen Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}"] }
+          }
+        },
+        {
+          "name": "Advance Line",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}/lines/{{kitchen_order_line_id}}/advance", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}", "lines", "{{kitchen_order_line_id}}", "advance"] },
+            "description": "Moves the line to the next status: Sent -> Acknowledged -> Accepted -> Preparing -> Ready -> ServedOrCollected."
+          }
+        },
+        {
+          "name": "Void Line",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Out of stock\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}/lines/{{kitchen_order_line_id}}/void", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}", "lines", "{{kitchen_order_line_id}}", "void"] },
+            "description": "Always requires manager approval."
+          }
+        },
+        {
+          "name": "Resend / Reprint Line",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}/lines/{{kitchen_order_line_id}}/resend", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}", "lines", "{{kitchen_order_line_id}}", "resend"] },
+            "description": "Creates a new line marked is_duplicate=true rather than repeating the original silently."
+          }
+        },
+        {
+          "name": "Handover",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}/handover", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}", "handover"] },
+            "description": "Requires every active line to be Ready first."
+          }
+        },
+        {
+          "name": "Close Kitchen Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/kitchen-orders/{{kitchen_order_id}}/close", "host": ["{{base_url}}"], "path": ["kitchen-orders", "{{kitchen_order_id}}", "close"] },
+            "description": "Requires every line served/collected, cancelled or voided."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Search Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?query={{customer_query}}",
+              "host": ["{{base_url}}"],
+              "path": ["customers"],
+              "query": [{ "key": "query", "value": "{{customer_query}}" }]
+            },
+            "description": "query matches loyalty ID, phone, email, or numeric account id."
+          }
+        },
+        {
+          "name": "Attach Customer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"{{customer_query}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/customer", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "customer"] }
+          }
+        },
+        {
+          "name": "Quick Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Shopper\",\n  \"phone\": \"0771234567\",\n  \"email\": \"jane@example.com\",\n  \"consent\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/customer/register", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "customer", "register"] }
+          }
+        },
+        {
+          "name": "Remove Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/customer", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "customer"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Discounts",
+      "item": [
+        {
+          "name": "Manual Discount",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"percent\",\n  \"value\": 10,\n  \"reason\": \"Loyal customer\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/discounts/manual", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "discounts", "manual"] },
+            "description": "type: percent|fixed. Add \"line_id\": \"{{line_id}}\" to discount one line instead of the whole basket. manager_pin only required at/above the configured threshold."
+          }
+        },
+        {
+          "name": "Redeem Coupon",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME10\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/coupon", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "coupon"] }
+          }
+        },
+        {
+          "name": "Redeem Loyalty Points",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": 100\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sales/{{sale_id}}/loyalty/redeem", "host": ["{{base_url}}"], "path": ["sales", "{{sale_id}}", "loyalty", "redeem"] },
+            "description": "Requires a customer already attached to the sale."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credit Notes & Returns",
+      "item": [
+        {
+          "name": "Return With Receipt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('credit_note_id', pm.response.json().credit_note.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_id\": \"{{sale_id}}\",\n  \"lines\": [\n    { \"sale_line_id\": \"{{line_id}}\", \"quantity\": 1, \"disposition\": \"restock\" }\n  ],\n  \"reason\": \"Wrong size\",\n  \"refund_method\": \"cash\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/returns", "host": ["{{base_url}}"], "path": ["returns"] },
+            "description": "Full or partial return against a completed sale. refund_method: cash|card|mobile_qr|store_credit. manager_pin required at/above threshold."
+          }
+        },
+        {
+          "name": "No-Receipt Return",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_query\": \"LOY-001\",\n  \"item_id\": {{item_id}},\n  \"quantity\": 1,\n  \"reason\": \"No receipt, item defective\",\n  \"manager_pin\": \"9999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/returns/no-receipt", "host": ["{{base_url}}"], "path": ["returns", "no-receipt"] },
+            "description": "Always requires manager approval. Only ever pays out as store credit."
+          }
+        },
+        {
+          "name": "Show Credit Note",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/credit-notes/{{credit_note_id}}", "host": ["{{base_url}}"], "path": ["credit-notes", "{{credit_note_id}}"] }
+          }
+        },
+        {
+          "name": "Reject Return",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Outside the return period\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/credit-notes/{{credit_note_id}}/reject", "host": ["{{base_url}}"], "path": ["credit-notes", "{{credit_note_id}}", "reject"] }
+          }
+        },
+        {
+          "name": "Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/credit-notes/{{credit_note_id}}/refund", "host": ["{{base_url}}"], "path": ["credit-notes", "{{credit_note_id}}", "refund"] },
+            "description": "Add \"simulate\": \"decline\"|\"timeout\" to test failure paths on a card/mobile refund."
+          }
+        },
+        {
+          "name": "Query Refund",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolve\": \"approved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/credit-notes/{{credit_note_id}}/refund/query", "host": ["{{base_url}}"], "path": ["credit-notes", "{{credit_note_id}}", "refund", "query"] }
+          }
+        },
+        {
+          "name": "Reprint Credit Note",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer lost copy\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/credit-notes/{{credit_note_id}}/reprint", "host": ["{{base_url}}"], "path": ["credit-notes", "{{credit_note_id}}", "reprint"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offline Sync",
+      "item": [
+        {
+          "name": "Sync Offline Sales",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactions\": [\n    {\n      \"client_reference\": \"OFFLINE-LOCAL-0001\",\n      \"shift_id\": \"{{shift_id}}\",\n      \"lines\": [\n        { \"item_id\": {{item_id}}, \"quantity\": 2 }\n      ],\n      \"amount_tendered\": 30\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/sync/offline-sales", "host": ["{{base_url}}"], "path": ["sync", "offline-sales"] },
+            "description": "Cash-only, replayed through the normal basket + payment pipeline. Idempotent by client_reference; the shift's till must still be open."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "item": [
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/user", "host": ["{{base_url}}"], "path": ["user"] }
+          }
+        }
+      ]
+    }
+  ]
+}
