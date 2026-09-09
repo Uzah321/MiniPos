@@ -146,7 +146,7 @@ class SaleController extends Controller
         $threshold = config('pos.line_removal_manager_threshold');
 
         if (bccomp((string) $line->line_total, (string) $threshold, 4) >= 0) {
-            $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null);
+            $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null, $sale->store_id);
         }
 
         $before = $line->toArray();
@@ -238,7 +238,7 @@ class SaleController extends Controller
             ]);
         }
 
-        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null);
+        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null, $sale->store_id);
 
         $sale->update([
             'exception_reviewed_by' => $manager->id,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
 use App\Terminals\Terminal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ShiftController extends Controller
@@ -21,25 +22,30 @@ class ShiftController extends Controller
             'terminal_id' => ['required', 'exists:terminals,id'],
         ]);
 
-        $terminal = Terminal::findOrFail($data['terminal_id']);
+        $shift = DB::transaction(function () use ($request, $data) {
+            // Locking the terminal row serialises concurrent opens for the
+            // same terminal, so two simultaneous requests can't both pass
+            // the "no active shift" check before either commits.
+            $terminal = Terminal::query()->lockForUpdate()->findOrFail($data['terminal_id']);
 
-        $activeShift = Shift::query()
-            ->where('terminal_id', $terminal->id)
-            ->where('status', ShiftStatus::Open)
-            ->first();
+            $activeShift = Shift::query()
+                ->where('terminal_id', $terminal->id)
+                ->where('status', ShiftStatus::Open)
+                ->first();
 
-        if ($activeShift) {
-            throw ValidationException::withMessages([
-                'terminal_id' => ['This terminal already has an active cashier shift.'],
+            if ($activeShift) {
+                throw ValidationException::withMessages([
+                    'terminal_id' => ['This terminal already has an active cashier shift.'],
+                ]);
+            }
+
+            return Shift::create([
+                'user_id' => $request->user()->id,
+                'terminal_id' => $terminal->id,
+                'status' => ShiftStatus::Open,
+                'opened_at' => now(),
             ]);
-        }
-
-        $shift = Shift::create([
-            'user_id' => $request->user()->id,
-            'terminal_id' => $terminal->id,
-            'status' => ShiftStatus::Open,
-            'opened_at' => now(),
-        ]);
+        });
 
         $this->auditLogger->log($request->user(), 'shift.open', $shift, after: $shift->toArray());
 
@@ -103,5 +109,22 @@ class ShiftController extends Controller
         $this->auditLogger->log($request->user(), 'shift.terminal_reassigned', $shift, before: $before, after: ['terminal_id' => $terminal->id]);
 
         return response()->json(['shift' => $shift->fresh()]);
+    }
+
+    /**
+     * Z report: the final end-of-shift reconciliation, available to the
+     * shift's own cashier or a manager/supervisor, once every till on the
+     * shift is closed.
+     */
+    public function zReport(Request $request, Shift $shift)
+    {
+        $isOwner = $shift->user_id === $request->user()->id;
+        $isManager = $request->user()->hasRole(['manager', 'supervisor', 'admin']);
+
+        if (! $isOwner && ! $isManager) {
+            throw ValidationException::withMessages(['shift' => ['This shift does not belong to you.']]);
+        }
+
+        return response()->json(['report' => $this->cashDrawer->zReport($shift)]);
     }
 }

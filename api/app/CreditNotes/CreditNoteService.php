@@ -14,6 +14,7 @@ use App\Sales\SaleStatus;
 use App\Services\AuditLogger;
 use App\Services\ManagerVerifier;
 use App\Shifts\CashDrawerService;
+use App\Shifts\Till;
 use App\Shifts\TillStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -106,7 +107,7 @@ class CreditNoteService
             $manager = null;
 
             if (bccomp($total, (string) config('pos.return_manager_threshold'), self::SCALE) >= 0) {
-                $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null);
+                $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null, $sale->store_id);
             }
 
             $creditNote = CreditNote::create([
@@ -161,7 +162,7 @@ class CreditNoteService
             throw ValidationException::withMessages(['item_id' => ['Item not found or not available for sale.']]);
         }
 
-        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null);
+        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null, $actor->store_id);
 
         $quantity = (string) $data['quantity'];
         $lineSubtotal = bcmul($quantity, (string) $item->price, self::SCALE);
@@ -280,6 +281,11 @@ class CreditNoteService
             if (! $till) {
                 throw ValidationException::withMessages(['refund_method' => ['No open till was found to pay out this cash refund.']]);
             }
+
+            // Locking the till row serialises concurrent cash refunds
+            // against it, so two simultaneous refunds can't both pass the
+            // "enough cash on hand" check against the same expected balance.
+            $till = Till::query()->lockForUpdate()->findOrFail($till->id);
 
             if (bccomp($this->cashDrawer->expectedCash($till), (string) $creditNote->total, self::SCALE) < 0) {
                 throw ValidationException::withMessages(['refund_method' => ['The till does not have enough cash on hand for this refund.']]);

@@ -17,8 +17,8 @@ use App\Terminals\TerminalController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
-    Route::post('/auth/login', [AuthController::class, 'login']);
+Route::prefix('v1')->middleware('throttle:api')->group(function () {
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/terminals/register', [TerminalController::class, 'register']);
     Route::get('/terminals/{terminal}/status', [TerminalController::class, 'status']);
 
@@ -29,6 +29,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/shifts/open', [ShiftController::class, 'open']);
         Route::post('/shifts/{shift}/close', [ShiftController::class, 'close']);
         Route::post('/shifts/{shift}/reassign-terminal', [ShiftController::class, 'reassignTerminal']);
+        Route::get('/shifts/{shift}/z-report', [ShiftController::class, 'zReport']);
         Route::post('/sync/offline-sales', [OfflineSyncController::class, 'sync']);
         Route::post('/tills/open', [TillController::class, 'open']);
         Route::post('/tills/{till}/no-sale', [TillController::class, 'noSale']);

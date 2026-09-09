@@ -3,10 +3,10 @@
 namespace App\Shifts;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\ManagerVerifier;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TillController extends Controller
@@ -14,6 +14,7 @@ class TillController extends Controller
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly CashDrawerService $cashDrawer,
+        private readonly ManagerVerifier $managerVerifier,
     ) {}
 
     public function open(Request $request)
@@ -42,30 +43,37 @@ class TillController extends Controller
                 ]);
             }
 
-            $manager = User::role('manager')
-                ->get()
-                ->first(fn (User $candidate) => $candidate->pin_hash && Hash::check($data['manager_pin'], $candidate->pin_hash));
-
-            if (! $manager) {
-                throw ValidationException::withMessages([
-                    'manager_pin' => ['Manager PIN could not be verified.'],
-                ]);
-            }
+            $manager = $this->managerVerifier->verify($data['manager_pin'], $shift->terminal->store_id);
         }
 
-        $till = Till::create([
-            'shift_id' => $shift->id,
-            'opening_float' => $data['opening_float'],
-            'status' => TillStatus::Open,
-            'manager_verified_by' => $manager?->id,
-        ]);
+        $till = DB::transaction(function () use ($shift, $data, $manager) {
+            // Locking the shift row serialises concurrent opens for the
+            // same shift, so two simultaneous requests can't both slip
+            // past the "no active till" check before either commits.
+            $shift = Shift::query()->lockForUpdate()->findOrFail($shift->id);
 
-        $till->cashMovements()->create([
-            'type' => 'open',
-            'amount' => $data['opening_float'],
-            'reason' => 'Opening float',
-            'approved_by' => $manager?->id,
-        ]);
+            if ($shift->tills()->where('status', TillStatus::Open)->exists()) {
+                throw ValidationException::withMessages([
+                    'shift_id' => ['This shift already has an open till.'],
+                ]);
+            }
+
+            $till = Till::create([
+                'shift_id' => $shift->id,
+                'opening_float' => $data['opening_float'],
+                'status' => TillStatus::Open,
+                'manager_verified_by' => $manager?->id,
+            ]);
+
+            $till->cashMovements()->create([
+                'type' => 'open',
+                'amount' => $data['opening_float'],
+                'reason' => 'Opening float',
+                'approved_by' => $manager?->id,
+            ]);
+
+            return $till;
+        });
 
         $this->auditLogger->log($request->user(), 'till.open', $till, after: $till->toArray());
 

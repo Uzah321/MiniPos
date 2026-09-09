@@ -5,6 +5,7 @@ namespace App\Terminals;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class TerminalController extends Controller
 {
@@ -54,6 +55,10 @@ class TerminalController extends Controller
      */
     public function peripheralCheck(Request $request, Terminal $terminal)
     {
+        if ($terminal->store_id !== $request->user()->store_id) {
+            throw ValidationException::withMessages(['terminal' => ['This terminal does not belong to your store.']]);
+        }
+
         $data = $request->validate([
             'checks' => ['required', 'array', 'min:1'],
             'checks.*.peripheral' => ['required', 'string', 'in:'.implode(',', self::PERIPHERALS)],

@@ -118,7 +118,7 @@ class SaleAdjustmentService
             throw ValidationException::withMessages(['value' => ['A percentage discount cannot exceed 100.']]);
         }
 
-        $manager = $this->resolveManagerIfNeeded($type, $value, $managerPin);
+        $manager = $this->resolveManagerIfNeeded($type, $value, $managerPin, $sale->store_id);
 
         if ($line) {
             $lineSubtotal = bcmul((string) $line->quantity, (string) $line->unit_price, self::SCALE);
@@ -259,7 +259,7 @@ class SaleAdjustmentService
         });
     }
 
-    private function resolveManagerIfNeeded(string $type, string $value, ?string $managerPin): ?User
+    private function resolveManagerIfNeeded(string $type, string $value, ?string $managerPin, int $storeId): ?User
     {
         $percentThreshold = (string) config('pos.discount_manager_threshold_percent');
         $amountThreshold = (string) config('pos.discount_manager_threshold_amount');
@@ -268,6 +268,6 @@ class SaleAdjustmentService
             ? bccomp($value, $percentThreshold, self::SCALE) >= 0
             : bccomp($value, $amountThreshold, self::SCALE) >= 0;
 
-        return $requiresManager ? $this->managerVerifier->verify($managerPin) : null;
+        return $requiresManager ? $this->managerVerifier->verify($managerPin, $storeId) : null;
     }
 }

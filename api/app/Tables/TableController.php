@@ -10,6 +10,7 @@ use App\Sales\SaleLine;
 use App\Sales\SaleStatus;
 use App\Services\AuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TableController extends Controller
@@ -51,19 +52,28 @@ class TableController extends Controller
             'server_id' => ['nullable', 'exists:users,id'],
         ]);
 
-        if ($table->status !== TableStatus::Available) {
-            throw ValidationException::withMessages([
-                'table' => ['This table is not available.'],
-            ]);
-        }
-
         $before = $table->toArray();
 
-        $table->update([
-            'status' => TableStatus::Occupied,
-            'server_id' => $data['server_id'] ?? $request->user()->id,
-            'guest_count' => $data['guest_count'] ?? null,
-        ]);
+        DB::transaction(function () use ($table, $data, $request) {
+            // Locking the table row serialises concurrent occupy attempts,
+            // so two simultaneous requests can't both pass the "available"
+            // check and double-book the table.
+            $locked = RestaurantTable::query()->lockForUpdate()->findOrFail($table->id);
+
+            if ($locked->status !== TableStatus::Available) {
+                throw ValidationException::withMessages([
+                    'table' => ['This table is not available.'],
+                ]);
+            }
+
+            $locked->update([
+                'status' => TableStatus::Occupied,
+                'server_id' => $data['server_id'] ?? $request->user()->id,
+                'guest_count' => $data['guest_count'] ?? null,
+            ]);
+        });
+
+        $table = $table->fresh();
 
         $this->auditLogger->log($request->user(), 'table.occupy', $table, before: $before, after: $table->toArray());
 

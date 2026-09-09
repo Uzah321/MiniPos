@@ -62,7 +62,7 @@ class KitchenOrderController extends Controller
             'manager_pin' => ['nullable', 'string'],
         ]);
 
-        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null);
+        $manager = $this->managerVerifier->verify($data['manager_pin'] ?? null, $kitchenOrder->sale->store_id);
 
         $line = $this->kitchenOrders->voidLine($line, $data['reason'], $manager);
 

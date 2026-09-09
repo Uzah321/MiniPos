@@ -2,6 +2,8 @@
 
 namespace App\Shifts;
 
+use App\CreditNotes\CreditNote;
+use App\CreditNotes\CreditNoteStatus;
 use App\Models\User;
 use App\Payments\Payment;
 use App\Payments\PaymentStatus;
@@ -48,7 +50,7 @@ class CashDrawerService
 
     public function noSale(Till $till, string $reason, ?string $managerPin, User $actor): CashMovement
     {
-        $manager = $this->managerVerifier->verify($managerPin);
+        $manager = $this->managerVerifier->verify($managerPin, $till->shift->terminal->store_id);
 
         $movement = $till->cashMovements()->create([
             'type' => 'no_sale',
@@ -113,7 +115,7 @@ class CashDrawerService
             throw ValidationException::withMessages(['till' => ['This till has no variance under review.']]);
         }
 
-        $manager = $this->managerVerifier->verify($managerPin);
+        $manager = $this->managerVerifier->verify($managerPin, $till->shift->terminal->store_id);
 
         $till->update(['manager_verified_by' => $manager->id]);
         $till->shift->update(['status' => ShiftStatus::Reconciling]);
@@ -199,13 +201,84 @@ class CashDrawerService
         ];
     }
 
+    /**
+     * Z report: the final end-of-shift reconciliation, only available once
+     * every till on the shift is closed. Unlike the X report, this is the
+     * definitive record for the shift and ties sales, payments, refunds,
+     * cash movements and loyalty activity together in one place.
+     *
+     * @return array<string, mixed>
+     */
+    public function zReport(Shift $shift): array
+    {
+        if ($shift->status !== ShiftStatus::Closed) {
+            throw ValidationException::withMessages([
+                'shift' => ['The Z report is only available once the shift is closed.'],
+            ]);
+        }
+
+        $sales = $shift->sales()->get();
+        $saleIds = $sales->pluck('id');
+        $completedSales = $sales->where('status', SaleStatus::Completed);
+
+        $paymentTotals = Payment::query()
+            ->whereIn('sale_id', $saleIds)
+            ->whereIn('status', [PaymentStatus::Captured, PaymentStatus::Settled])
+            ->get()
+            ->groupBy('tender_type')
+            ->map(fn ($payments) => $payments->reduce(fn (string $carry, Payment $p) => bcadd($carry, (string) $p->amount, self::SCALE), '0.0000'));
+
+        $creditNotes = CreditNote::query()
+            ->whereIn('original_sale_id', $saleIds)
+            ->where('status', CreditNoteStatus::Completed)
+            ->get();
+
+        $tills = $shift->tills;
+
+        $movementTotals = CashMovement::query()
+            ->whereIn('till_id', $tills->pluck('id'))
+            ->get()
+            ->groupBy('type')
+            ->map(fn ($movements) => $movements->reduce(fn (string $carry, CashMovement $m) => bcadd($carry, (string) $m->amount, self::SCALE), '0.0000'));
+
+        return [
+            'shift' => [
+                'id' => $shift->id,
+                'opened_at' => $shift->opened_at,
+                'closed_at' => $shift->closed_at,
+                'cashier_id' => $shift->user_id,
+            ],
+            'sales' => [
+                'count' => $completedSales->count(),
+                'subtotal' => $completedSales->reduce(fn (string $c, Sale $s) => bcadd($c, (string) $s->subtotal, self::SCALE), '0.0000'),
+                'discount_total' => $completedSales->reduce(fn (string $c, Sale $s) => bcadd($c, (string) $s->discount_total, self::SCALE), '0.0000'),
+                'tax_total' => $completedSales->reduce(fn (string $c, Sale $s) => bcadd($c, (string) $s->tax_total, self::SCALE), '0.0000'),
+                'net_total' => $completedSales->reduce(fn (string $c, Sale $s) => bcadd($c, (string) $s->total, self::SCALE), '0.0000'),
+                'loyalty_points_earned' => $completedSales->sum('loyalty_points_earned'),
+                'loyalty_points_redeemed' => $completedSales->sum('loyalty_points_redeemed'),
+            ],
+            'payments_by_tender' => $paymentTotals,
+            'refunds' => [
+                'count' => $creditNotes->count(),
+                'total' => $creditNotes->reduce(fn (string $c, CreditNote $cn) => bcadd($c, (string) $cn->total, self::SCALE), '0.0000'),
+            ],
+            'cash_movements' => $movementTotals,
+            'tills' => $tills->map(fn (Till $till) => [
+                'id' => $till->id,
+                'opening_float' => (string) $till->opening_float,
+                'closing_count' => (string) $till->closing_count,
+                'variance' => (string) $till->variance,
+            ])->all(),
+        ];
+    }
+
     private function recordApprovedMovement(Till $till, string $type, string $amount, string $reason, ?string $managerPin, User $actor): CashMovement
     {
         if ($till->status !== TillStatus::Open) {
             throw ValidationException::withMessages(['till' => ['This till is not open.']]);
         }
 
-        $manager = $this->managerVerifier->verify($managerPin);
+        $manager = $this->managerVerifier->verify($managerPin, $till->shift->terminal->store_id);
 
         $movement = $till->cashMovements()->create([
             'type' => $type,
