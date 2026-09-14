@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/creditnotes",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\CreditNotes\\": "app/",
+            "Modules\\CreditNotes\\Database\\Factories\\": "database/factories/",
+            "Modules\\CreditNotes\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\CreditNotes\\Tests\\": "tests/"
+        }
+    }
+}

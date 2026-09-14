@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Store;
 use App\Models\User;
-use App\Tables\RestaurantTable;
-use App\Tables\TableStatus;
-use App\Terminals\Terminal;
+use Modules\Tables\RestaurantTable;
+use Modules\Tables\TableStatus;
+use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

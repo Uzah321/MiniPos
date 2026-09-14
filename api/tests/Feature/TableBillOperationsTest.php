@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Items\Item;
+use Modules\Items\Item;
 use App\Models\Store;
 use App\Models\User;
-use App\Sales\Sale;
-use App\Sales\SaleStatus;
-use App\Tables\RestaurantTable;
-use App\Tables\TableStatus;
-use App\Terminals\Terminal;
+use Modules\Sales\Sale;
+use Modules\Sales\SaleStatus;
+use Modules\Tables\RestaurantTable;
+use Modules\Tables\TableStatus;
+use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

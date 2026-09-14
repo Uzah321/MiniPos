@@ -1,0 +1,15 @@
+{
+    "Authentication": true,
+    "CreditNotes": true,
+    "Customers": true,
+    "Discounts": true,
+    "Items": true,
+    "Kitchen": true,
+    "Offline": true,
+    "Payments": true,
+    "Receipts": true,
+    "Sales": true,
+    "Shifts": true,
+    "Tables": true,
+    "Terminals": true
+}

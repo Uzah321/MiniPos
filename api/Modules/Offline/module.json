@@ -1,0 +1,11 @@
+{
+    "name": "Offline",
+    "alias": "offline",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Offline\\Providers\\OfflineServiceProvider"
+    ],
+    "files": []
+}

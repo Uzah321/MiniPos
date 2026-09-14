@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Items\Item;
+use Modules\Items\Item;
 use App\Models\Store;
 use App\Models\User;
-use App\Terminals\Terminal;
+use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

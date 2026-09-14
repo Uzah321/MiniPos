@@ -1,0 +1,11 @@
+{
+    "name": "Tables",
+    "alias": "tables",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Tables\\Providers\\TablesServiceProvider"
+    ],
+    "files": []
+}

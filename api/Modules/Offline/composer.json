@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/offline",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Offline\\": "app/",
+            "Modules\\Offline\\Database\\Factories\\": "database/factories/",
+            "Modules\\Offline\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Offline\\Tests\\": "tests/"
+        }
+    }
+}

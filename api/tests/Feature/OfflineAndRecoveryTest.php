@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Items\Item;
+use Modules\Items\Item;
 use App\Models\Store;
 use App\Models\User;
-use App\Payments\PaymentStatus;
-use App\Sales\SaleStatus;
-use App\Shifts\ShiftStatus;
-use App\Terminals\Terminal;
+use Modules\Payments\PaymentStatus;
+use Modules\Sales\SaleStatus;
+use Modules\Shifts\ShiftStatus;
+use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

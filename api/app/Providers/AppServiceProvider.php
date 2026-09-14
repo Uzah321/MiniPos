@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Payments\Gateways\FakePaymentGateway;
-use App\Payments\Gateways\PaymentGatewayInterface;
+use Modules\Payments\Gateways\FakePaymentGateway;
+use Modules\Payments\Gateways\PaymentGatewayInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;

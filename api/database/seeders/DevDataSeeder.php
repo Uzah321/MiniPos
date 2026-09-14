@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Customers\Customer;
-use App\Discounts\Coupon;
-use App\Discounts\Promotion;
-use App\Items\Item;
+use Modules\Customers\Customer;
+use Modules\Discounts\Coupon;
+use Modules\Discounts\Promotion;
+use Modules\Items\Item;
 use App\Models\Store;
 use App\Models\User;
-use App\Terminals\Terminal;
-use App\Terminals\TerminalStatus;
+use Modules\Terminals\Terminal;
+use Modules\Terminals\TerminalStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

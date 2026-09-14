@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Store;
 use App\Models\User;
-use App\Shifts\ShiftStatus;
-use App\Terminals\Terminal;
+use Modules\Shifts\ShiftStatus;
+use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;

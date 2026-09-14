@@ -1,0 +1,11 @@
+{
+    "name": "Items",
+    "alias": "items",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Items\\Providers\\ItemsServiceProvider"
+    ],
+    "files": []
+}
