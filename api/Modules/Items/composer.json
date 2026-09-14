@@ -10,16 +10,19 @@
     "extra": {
         "laravel": {
             "providers": [],
-            "aliases": {
-
-            }
+            "aliases": {}
         }
     },
     "autoload": {
         "psr-4": {
-            "Modules\\Items\\": "app/",
+            "Modules\\Items\\": [
+                "app/",
+                "Http/Controllers/"
+            ],
             "Modules\\Items\\Database\\Factories\\": "database/factories/",
-            "Modules\\Items\\Database\\Seeders\\": "database/seeders/"
+            "Modules\\Items\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Items\\Http\\Controllers\\": "Http/Controllers/",
+            "Modules\\Items\\Providers\\": "Providers/"
         }
     },
     "autoload-dev": {
