@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Str;
-use Pdo\Mysql;
 
 return [
 
@@ -17,7 +16,9 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+//    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mysql'),
+
 
     /*
     |--------------------------------------------------------------------------
@@ -59,8 +60,12 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                (PHP_VERSION_ID >= 80500
+                    ? \Pdo\Mysql::ATTR_SSL_CA
+                    : \PDO::MYSQL_ATTR_SSL_CA
+                ) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
@@ -79,10 +84,15 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                (PHP_VERSION_ID >= 80500
+                    ? \Pdo\Mysql::ATTR_SSL_CA
+                    : \PDO::MYSQL_ATTR_SSL_CA
+                ) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
+
 
         'pgsql' => [
             'driver' => 'pgsql',
@@ -96,7 +106,8 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+
+            'sslmode' => 'prefer',
         ],
 
         'sqlsrv' => [
@@ -112,6 +123,20 @@ return [
             'prefix_indexes' => true,
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+        ],
+
+        'radius' => [
+            'driver' => 'mysql',
+            'host' => env('RADIUS_DB_HOST', '127.0.0.1'),
+            'port' => env('RADIUS_DB_PORT', '3306'),
+            'database' => env('RADIUS_DB_DATABASE', 'radius'),
+            'username' => env('RADIUS_DB_USERNAME', 'radius'),
+            'password' => env('RADIUS_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
         ],
 
     ],
