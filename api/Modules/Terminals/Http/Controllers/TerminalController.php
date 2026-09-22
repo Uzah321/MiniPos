@@ -19,28 +19,39 @@ class TerminalController extends Controller
     {
         $data = $request->validate([
             'registration_code' => ['required', 'string'],
-            'store_id' => ['required', 'exists:stores,id'],
-            'name' => ['nullable', 'string'],
+            'device_key' => ['required', 'string', 'size:64'],
             'app_version' => ['nullable', 'string'],
         ]);
 
-        $terminal = Terminal::firstOrNew([
-            'registration_code' => $data['registration_code'],
-            'store_id' => $data['store_id'],
-        ]);
+        $terminal = Terminal::query()
+            ->where('registration_code', $data['registration_code'])
+            ->first();
+
+        if (! $terminal || ! $terminal->device_key_hash
+            || ! hash_equals($terminal->device_key_hash, hash('sha256', $data['device_key']))) {
+            throw ValidationException::withMessages([
+                'registration_code' => ['The terminal registration credentials are invalid.'],
+            ]);
+        }
+        if ($terminal->revoked_at !== null || $terminal->status === TerminalStatus::Suspended) {
+            throw ValidationException::withMessages(['registration_code' => ['This terminal is disabled.']]);
+        }
 
         $terminal->fill([
-            'name' => $data['name'] ?? $terminal->name,
             'app_version' => $data['app_version'] ?? null,
             'status' => TerminalStatus::Active,
+            'activated_at' => $terminal->activated_at ?? now(),
             'last_seen_at' => now(),
         ])->save();
 
         return response()->json(['terminal' => $terminal]);
     }
 
-    public function status(Terminal $terminal)
+    public function status(Request $request, Terminal $terminal)
     {
+        $deviceKey = (string) $request->header('X-Device-Key');
+        abort_unless($terminal->device_key_hash && $deviceKey !== ''
+            && hash_equals($terminal->device_key_hash, hash('sha256', $deviceKey)), 401);
         $terminal->update(['last_seen_at' => now()]);
 
         return response()->json([

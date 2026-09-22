@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Modules\Authentication\Database\Seeders\AuthenticationDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,9 +15,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
+        $seeders = [
             RolePermissionSeeder::class,
-            DevDataSeeder::class,
-        ]);
+            AuthenticationDatabaseSeeder::class,
+        ];
+
+        if (app()->environment(['local', 'testing'])) {
+            $seeders[] = DevDataSeeder::class;
+        }
+
+        $this->call($seeders);
     }
 }

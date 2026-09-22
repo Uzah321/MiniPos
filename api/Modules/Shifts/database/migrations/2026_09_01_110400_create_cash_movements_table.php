@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('type');
             $table->decimal('amount', 12, 4);
             $table->string('reason')->nullable();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

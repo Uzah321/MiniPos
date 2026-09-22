@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('reason')->nullable();
             $table->string('refund_method')->nullable();
             $table->decimal('total', 12, 4)->default(0);
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

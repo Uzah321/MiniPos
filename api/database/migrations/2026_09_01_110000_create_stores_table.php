@@ -9,10 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stores', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('complex_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('code')->unique();
             $table->string('timezone')->default('UTC');
+            $table->json('business_hours')->nullable();
+            $table->string('status')->default('active');
             $table->boolean('active')->default(true);
             $table->timestamps();
         });

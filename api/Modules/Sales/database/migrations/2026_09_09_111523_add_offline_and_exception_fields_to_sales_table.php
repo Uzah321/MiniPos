@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('sales', function (Blueprint $table) {
             $table->string('client_reference')->nullable()->unique()->after('id');
             $table->boolean('is_offline')->default(false)->after('client_reference');
-            $table->foreignId('exception_reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('exception_reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('exception_reviewed_at')->nullable();
             $table->text('exception_note')->nullable();
         });

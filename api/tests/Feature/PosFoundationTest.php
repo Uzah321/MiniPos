@@ -69,16 +69,23 @@ class PosFoundationTest extends TestCase
 
     public function test_terminal_can_self_register(): void
     {
+        $deviceKey = bin2hex(random_bytes(32));
+        Terminal::create([
+            'store_id' => $this->store->id,
+            'registration_code' => 'TERM-NEW-001',
+            'device_key_hash' => hash('sha256', $deviceKey),
+            'name' => 'New Terminal',
+            'status' => 'pending',
+        ]);
         $response = $this->postJson('/api/v1/terminals/register', [
             'registration_code' => 'TERM-NEW-001',
-            'store_id' => $this->store->id,
-            'name' => 'New Terminal',
+            'device_key' => $deviceKey,
         ]);
 
         $response->assertOk()->assertJsonPath('terminal.status', 'active');
     }
 
-    public function test_cashier_can_login_with_password(): void
+    public function test_cashier_cannot_use_password_on_pos_login(): void
     {
         $this->makeCashier();
 
@@ -88,8 +95,7 @@ class PosFoundationTest extends TestCase
             'terminal_id' => $this->terminal->id,
         ]);
 
-        $response->assertOk()->assertJsonPath('user.roles.0', 'cashier');
-        $this->assertNotEmpty($response->json('token'));
+        $response->assertUnprocessable();
     }
 
     public function test_cashier_can_login_with_pin(): void

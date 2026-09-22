@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('terminal_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('terminal_id')->constrained()->cascadeOnDelete();
             $table->string('status')->default('opening');
             $table->timestamp('opened_at')->nullable();
             $table->timestamp('closed_at')->nullable();

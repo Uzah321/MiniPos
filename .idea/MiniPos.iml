@@ -206,6 +206,8 @@
       <excludeFolder url="file://$MODULE_DIR$/api/vendor/vlucas/phpdotenv" />
       <excludeFolder url="file://$MODULE_DIR$/api/vendor/voku/portable-ascii" />
       <excludeFolder url="file://$MODULE_DIR$/api/vendor/wikimedia/composer-merge-plugin" />
+      <excludeFolder url="file://$MODULE_DIR$/api/storage/app" />
+      <excludeFolder url="file://$MODULE_DIR$/api/storage/framework" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->decimal('closing_count', 12, 4)->nullable();
             $table->decimal('variance', 12, 4)->nullable();
             $table->string('status')->default('open');
-            $table->foreignId('manager_verified_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('manager_verified_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

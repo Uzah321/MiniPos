@@ -24,10 +24,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // A 4-digit PIN is only 10,000 combinations, so login needs its own
-        // tight limit rather than relying on the general API rate.
+        // PINs have a smaller search space than passwords, so login needs both
+        // an IP-wide limit and a tighter per-identifier limit.
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
+            $identifier = mb_strtolower((string) ($request->input('email')
+                ?? $request->input('employee_code')
+                ?? $request->input('login')
+                ?? $request->input('challenge')
+                ?? 'unknown'));
+
+            return [
+                Limit::perMinute(30)->by('login-ip:'.$request->ip()),
+                Limit::perMinute(10)->by('login-account:'.hash('sha256', $request->ip().'|'.$identifier)),
+            ];
         });
 
         RateLimiter::for('api', function (Request $request) {

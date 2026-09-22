@@ -24,6 +24,9 @@ class AuditLogger
             'before' => $before,
             'after' => $after,
             'reason' => $reason,
+            'ip_address' => app()->bound('request') ? request()->ip() : null,
+            'user_agent' => app()->bound('request') ? request()->userAgent() : null,
+            'request_id' => app()->bound('request') ? request()->header('X-Request-ID') : null,
         ]);
     }
 }
