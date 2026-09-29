@@ -3,13 +3,14 @@
 namespace Modules\Items;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable(['sku', 'barcode', 'name', 'price', 'tax_rate', 'station', 'active'])]
 class Item extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {

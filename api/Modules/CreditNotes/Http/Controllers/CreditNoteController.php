@@ -44,7 +44,7 @@ class CreditNoteController extends Controller
     {
         $data = $request->validate([
             'customer_query' => ['required', 'string'],
-            'item_id' => ['required', 'integer', 'exists:items,id'],
+            'item_id' => ['required', 'uuid', 'exists:items,id'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'reason' => ['required', 'string'],
             'condition' => ['nullable', 'string'],

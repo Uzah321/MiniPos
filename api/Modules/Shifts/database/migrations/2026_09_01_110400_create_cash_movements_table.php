@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cash_movements', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('till_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('till_id')->constrained()->cascadeOnDelete();
             $table->string('type');
             $table->decimal('amount', 12, 4);
             $table->string('reason')->nullable();

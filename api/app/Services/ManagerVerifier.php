@@ -25,7 +25,7 @@ class ManagerVerifier
     /**
      * @throws ValidationException when the PIN is missing, locked out, or does not match an active manager at the given store.
      */
-    public function verify(?string $pin, int $storeId, string $field = 'manager_pin'): User
+    public function verify(?string $pin, string $storeId, string $field = 'manager_pin'): User
     {
         $rateLimitKey = "manager-pin:{$storeId}";
 

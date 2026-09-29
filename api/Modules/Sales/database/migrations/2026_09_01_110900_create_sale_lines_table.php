@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('sale_lines', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('sale_id')->constrained('sales')->cascadeOnDelete();
-            $table->foreignId('item_id')->constrained()->restrictOnDelete();
+            $table->foreignUuid('item_id')->constrained()->restrictOnDelete();
             $table->decimal('quantity', 12, 4);
             $table->decimal('unit_price', 12, 4);
             $table->decimal('discount_amount', 12, 4)->default(0);

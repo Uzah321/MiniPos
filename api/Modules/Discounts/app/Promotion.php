@@ -4,6 +4,7 @@ namespace Modules\Discounts;
 
 use Modules\Items\Item;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['item_id', 'min_quantity', 'discount_type', 'discount_value', 'active', 'starts_at', 'ends_at'])]
 class Promotion extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {

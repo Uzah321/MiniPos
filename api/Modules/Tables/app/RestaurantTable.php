@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\User;
 use Modules\Sales\Sale;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['store_id', 'label', 'status', 'server_id', 'guest_count'])]
 class RestaurantTable extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $table = 'tables';
 

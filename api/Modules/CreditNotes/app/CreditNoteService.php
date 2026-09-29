@@ -17,6 +17,7 @@ use Modules\Shifts\CashDrawerService;
 use Modules\Shifts\Till;
 use Modules\Shifts\TillStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -137,7 +138,7 @@ class CreditNoteService
      * return at the item's current price, and only ever pays out as store
      * credit Ã¢â‚¬â€ a lower-trust path since the original tender is unknown.
      *
-     * @param  array{customer_query: string, item_id: int, quantity: string, reason: string, condition?: ?string, disposition?: ?string, manager_pin: ?string}  $data
+     * @param  array{customer_query: string, item_id: string, quantity: string, reason: string, condition?: ?string, disposition?: ?string, manager_pin: ?string}  $data
      */
     public function initiateNoReceiptReturn(array $data, User $actor): CreditNote
     {
@@ -149,7 +150,7 @@ class CreditNoteService
             ->where('loyalty_id', $data['customer_query'])
             ->orWhere('phone', $data['customer_query'])
             ->orWhere('email', $data['customer_query'])
-            ->when(is_numeric($data['customer_query']), fn ($query) => $query->orWhere('id', (int) $data['customer_query']))
+            ->when(Str::isUuid($data['customer_query']), fn ($query) => $query->orWhere('id', $data['customer_query']))
             ->first();
 
         if (! $customer) {

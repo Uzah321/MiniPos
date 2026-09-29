@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Modules\Sales\Sale;
 use Modules\Sales\SaleAdjustmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CustomerController extends Controller
@@ -24,7 +25,7 @@ class CustomerController extends Controller
             ->where('loyalty_id', $query)
             ->orWhere('phone', $query)
             ->orWhere('email', $query)
-            ->when(is_numeric($query), fn ($q) => $q->orWhere('id', (int) $query))
+            ->when(Str::isUuid($query), fn ($q) => $q->orWhere('id', $query))
             ->limit(10)
             ->get();
 
@@ -45,7 +46,7 @@ class CustomerController extends Controller
             ->where('loyalty_id', $query)
             ->orWhere('phone', $query)
             ->orWhere('email', $query)
-            ->when(is_numeric($query), fn ($q) => $q->orWhere('id', (int) $query))
+            ->when(Str::isUuid($query), fn ($q) => $q->orWhere('id', $query))
             ->first();
 
         if (! $customer) {

@@ -12,9 +12,9 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('store_id')->constrained()->restrictOnDelete();
             $table->foreignUuid('terminal_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('shift_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('table_id')->nullable()->constrained('tables')->nullOnDelete();
+            $table->foreignUuid('shift_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUuid('customer_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUuid('table_id')->nullable()->constrained('tables')->nullOnDelete();
             $table->foreignUuid('cashier_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status')->default('draft');
             $table->decimal('subtotal', 12, 4)->default(0);

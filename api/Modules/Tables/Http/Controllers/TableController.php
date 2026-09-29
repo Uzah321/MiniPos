@@ -91,7 +91,7 @@ class TableController extends Controller
             'to_table_id' => ['required', 'exists:tables,id'],
         ]);
 
-        if ((int) $data['to_table_id'] === $table->id) {
+        if ($data['to_table_id'] === $table->id) {
             throw ValidationException::withMessages([
                 'to_table_id' => ['Choose a different table to transfer to.'],
             ]);

@@ -12,6 +12,7 @@ use Modules\Terminals\Terminal;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class OfflineAndRecoveryTest extends TestCase
@@ -141,7 +142,7 @@ class OfflineAndRecoveryTest extends TestCase
                 [
                     'client_reference' => 'OFFLINE-BAD-ITEM',
                     'shift_id' => $shift['id'],
-                    'lines' => [['item_id' => 999999, 'quantity' => 1]],
+                    'lines' => [['item_id' => (string) Str::uuid(), 'quantity' => 1]],
                 ],
                 [
                     'client_reference' => 'OFFLINE-GOOD-ITEM',

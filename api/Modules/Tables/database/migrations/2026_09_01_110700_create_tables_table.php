@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tables', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignUuid('store_id')->constrained()->cascadeOnDelete();
             $table->string('label');
             $table->string('status')->default('available');

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('kitchen_orders', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('sale_id')->nullable()->constrained('sales')->nullOnDelete();
-            $table->foreignId('table_id')->nullable()->constrained('tables')->nullOnDelete();
+            $table->foreignUuid('table_id')->nullable()->constrained('tables')->nullOnDelete();
             $table->string('status')->default('draft');
             $table->timestamps();
         });

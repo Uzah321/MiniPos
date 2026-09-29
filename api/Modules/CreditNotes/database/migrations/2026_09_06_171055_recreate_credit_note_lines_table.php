@@ -22,7 +22,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('credit_note_id')->constrained('credit_notes')->cascadeOnDelete();
             $table->foreignUuid('sale_line_id')->nullable()->constrained('sale_lines')->restrictOnDelete();
-            $table->foreignId('item_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignUuid('item_id')->nullable()->constrained()->restrictOnDelete();
             $table->decimal('quantity', 12, 4);
             $table->string('condition')->nullable();
             $table->decimal('amount', 12, 4);

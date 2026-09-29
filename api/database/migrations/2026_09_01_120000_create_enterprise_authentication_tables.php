@@ -97,7 +97,7 @@ return new class extends Migration
         Schema::create('auth_sessions', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('personal_access_token_id')->nullable()->index();
+            $table->uuid('personal_access_token_id')->nullable()->index();
             $table->foreignUuid('store_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignUuid('terminal_id')->nullable()->constrained()->nullOnDelete();
             $table->string('channel');

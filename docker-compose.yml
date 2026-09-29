@@ -1,0 +1,17 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: masterpos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: masterpos
+      MYSQL_USER: masterpos
+      MYSQL_PASSWORD: QXeVnfIVNRqQRRzdMy9w
+      MYSQL_ROOT_PASSWORD: QXeVnfIVNRqQRRzdMy9w
+    ports:
+      - "3306:3306"
+    volumes:
+      - masterpos_mysql_data:/var/lib/mysql
+
+volumes:
+  masterpos_mysql_data:

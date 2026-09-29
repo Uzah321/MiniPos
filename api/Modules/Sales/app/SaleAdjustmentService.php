@@ -259,7 +259,7 @@ class SaleAdjustmentService
         });
     }
 
-    private function resolveManagerIfNeeded(string $type, string $value, ?string $managerPin, int $storeId): ?User
+    private function resolveManagerIfNeeded(string $type, string $value, ?string $managerPin, string $storeId): ?User
     {
         $percentThreshold = (string) config('pos.discount_manager_threshold_percent');
         $amountThreshold = (string) config('pos.discount_manager_threshold_amount');

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('kitchen_order_lines', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('kitchen_order_id')->constrained('kitchen_orders')->cascadeOnDelete();
-            $table->foreignId('item_id')->constrained()->restrictOnDelete();
+            $table->foreignUuid('item_id')->constrained()->restrictOnDelete();
             $table->string('station')->nullable();
             $table->string('status')->default('draft');
             $table->decimal('quantity', 12, 4)->default(1);

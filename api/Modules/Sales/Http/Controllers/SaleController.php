@@ -96,7 +96,7 @@ class SaleController extends Controller
         $this->assertOwnedByCashier($request, $sale);
 
         $data = $request->validate([
-            'item_id' => ['required_without_all:sku,barcode', 'nullable', 'integer', 'exists:items,id'],
+            'item_id' => ['required_without_all:sku,barcode', 'nullable', 'uuid', 'exists:items,id'],
             'sku' => ['required_without_all:item_id,barcode', 'nullable', 'string'],
             'barcode' => ['required_without_all:item_id,sku', 'nullable', 'string'],
             'quantity' => ['nullable', 'numeric', 'min:0.0001'],

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('credit_notes', function (Blueprint $table) {
             $table->foreignUuid('store_id')->after('id')->constrained()->restrictOnDelete();
-            $table->foreignId('customer_id')->nullable()->after('original_sale_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('customer_id')->nullable()->after('original_sale_id')->constrained()->nullOnDelete();
             $table->string('credit_note_number')->nullable()->unique()->after('status');
             $table->string('refund_reference')->nullable()->after('refund_method');
             $table->timestamp('issued_at')->nullable()->after('total');

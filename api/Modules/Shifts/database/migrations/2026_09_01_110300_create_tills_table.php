@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tills', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('shift_id')->constrained()->cascadeOnDelete();
             $table->decimal('opening_float', 12, 4);
             $table->decimal('closing_count', 12, 4)->nullable();
             $table->decimal('variance', 12, 4)->nullable();

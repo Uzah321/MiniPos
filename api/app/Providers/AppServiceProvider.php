@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use Modules\Payments\Gateways\FakePaymentGateway;
 use Modules\Payments\Gateways\PaymentGatewayInterface;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         // PINs have a smaller search space than passwords, so login needs both
         // an IP-wide limit and a tighter per-identifier limit.
         RateLimiter::for('login', function (Request $request) {
