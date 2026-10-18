@@ -2,14 +2,16 @@
 
 namespace App\Providers;
 
-use App\Models\PersonalAccessToken;
-use Laravel\Sanctum\Sanctum;
-use Modules\Payments\Gateways\FakePaymentGateway;
-use Modules\Payments\Gateways\PaymentGatewayInterface;
-use Illuminate\Cache\RateLimiting\Limit;
+use App\Services\Auth\ManagerApprovalRateLimiter;
+use App\Services\Auth\PosLoginRateLimiter;
+use App\Services\Sync\SyncConfigurationService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,33 +20,50 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(PaymentGatewayInterface::class, FakePaymentGateway::class);
+        //
     }
 
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
-        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+    public function boot(
+        PosLoginRateLimiter $loginRateLimiter,
+        ManagerApprovalRateLimiter $managerApprovalRateLimiter
+    ): void {
+        RateLimiter::for(
+            PosLoginRateLimiter::LOGIN,
+            fn (Request $request) => $loginRateLimiter->login($request)
+        );
 
-        // PINs have a smaller search space than passwords, so login needs both
-        // an IP-wide limit and a tighter per-identifier limit.
-        RateLimiter::for('login', function (Request $request) {
-            $identifier = mb_strtolower((string) ($request->input('email')
-                ?? $request->input('employee_code')
-                ?? $request->input('login')
-                ?? $request->input('challenge')
-                ?? 'unknown'));
+        RateLimiter::for(
+            PosLoginRateLimiter::LOGIN_MODE,
+            fn (Request $request) => $loginRateLimiter->loginMode($request)
+        );
 
-            return [
-                Limit::perMinute(30)->by('login-ip:'.$request->ip()),
-                Limit::perMinute(10)->by('login-account:'.hash('sha256', $request->ip().'|'.$identifier)),
-            ];
-        });
+        RateLimiter::for(
+            ManagerApprovalRateLimiter::VERIFY,
+            fn (Request $request) => $managerApprovalRateLimiter->verify($request)
+        );
 
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
-        });
+        foreach (['eloquent.saved: *', 'eloquent.deleted: *', 'eloquent.restored: *'] as $event) {
+            Event::listen($event, function (string $eventName, array $payload): void {
+                $model = $payload[0] ?? null;
+                if ($model instanceof Model) {
+                    try {
+                        app(SyncConfigurationService::class)->markModelDirty($model);
+                    } catch (Throwable $exception) {
+                        // A configuration mutation must remain durable even if
+                        // the optional synchronization signal cannot be queued.
+                        // The periodic full pull/Force Update path remains the
+                        // recovery mechanism, while this warning is actionable.
+                        Log::warning('Unable to queue configuration sync signal.', [
+                            'model' => $model::class,
+                            'id' => (string) $model->getKey(),
+                            'error' => $exception->getMessage(),
+                        ]);
+                    }
+                }
+            });
+        }
     }
 }

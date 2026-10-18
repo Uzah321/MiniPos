@@ -38,10 +38,22 @@ return [
             'report' => false,
         ],
 
+        // QZ Tray private keys must never be exposed through a temporary URL
+        // or the public storage symlink. Only server-side signing code may use
+        // this disk.
+        'qz_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => false,
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

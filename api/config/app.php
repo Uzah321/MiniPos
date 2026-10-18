@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Harare',
 
     /*
     |--------------------------------------------------------------------------
@@ -114,7 +114,7 @@ return [
     | manage Laravel's "maintenance mode" status. The "cache" driver will
     | allow maintenance mode to be controlled across multiple machines.
     |
-    | Supported drivers: "file", "cache", "array"
+    | Supported drivers: "file", "cache"
     |
     */
 

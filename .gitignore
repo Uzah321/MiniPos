@@ -1,0 +1,39 @@
+# Workstation/editor state
+/.idea/
+/.junie/
+/.vscode/
+
+# Local build, verification and packaging output
+/tmp/
+/output/
+/vendor/
+/.android-home/
+/.android-sdk-home/
+/.android-user-home/
+/.gradle-user-home/
+/android-foh/.verification-build/
+
+# Runtime/customer data must never enter source control
+/api/assets/receipts/
+/api/assets/inbuckscodes/
+/api/assets/barcode-labels/
+/api/public/api/assets/barcode-labels/
+/api/public/assets/barcode-labels/
+/api/public/inbuckscodes/
+/api/zimra/devices/
+*.salexa-company
+*.sqlite
+*.sqlite3
+
+# Private deployment material
+**/license-private.pem
+**/license-public.pem
+**/id_rsa
+**/id_rsa.pub
+**/id_ed25519
+**/id_ed25519.pub
+*.p12
+*.pfx
+
+# Local deployment diagnostics can contain workstation and paired-device data.
+deployment/local-sync-simulation/*.log

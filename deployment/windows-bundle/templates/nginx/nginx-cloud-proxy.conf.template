@@ -1,0 +1,118 @@
+worker_processes 1;
+
+error_log "{{INSTALL_ROOT_NGINX}}/logs/nginx/error.log" notice;
+pid "{{INSTALL_ROOT_NGINX}}/run/nginx.pid";
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include "{{NGINX_RUNTIME_NGINX}}/conf/mime.types";
+    default_type application/octet-stream;
+
+    access_log "{{INSTALL_ROOT_NGINX}}/logs/nginx/access.log";
+    sendfile on;
+    keepalive_timeout 65;
+    client_max_body_size 100M;
+    server_tokens off;
+
+    client_body_temp_path "{{INSTALL_ROOT_NGINX}}/run/nginx/client_body_temp";
+    proxy_temp_path "{{INSTALL_ROOT_NGINX}}/run/nginx/proxy_temp";
+    fastcgi_temp_path "{{INSTALL_ROOT_NGINX}}/run/nginx/fastcgi_temp";
+    uwsgi_temp_path "{{INSTALL_ROOT_NGINX}}/run/nginx/uwsgi_temp";
+    scgi_temp_path "{{INSTALL_ROOT_NGINX}}/run/nginx/scgi_temp";
+
+    # Each php-cgi worker serves one request at a time; prefer an idle one.
+    upstream servenest_php {
+        least_conn;
+{{PHP_UPSTREAM_SERVERS}}
+    }
+
+    # Central Back Office behind a TLS-terminating reverse proxy. Browsers and
+    # shop POS servers use the proxy's HTTPS address; this listener must only
+    # be reachable from that proxy.
+    server {
+        listen {{UI_PORT}} default_server;
+        server_name _;
+
+        root "{{INSTALL_ROOT_NGINX}}/web/back";
+        index index.html;
+
+        location = /runtime-config.js {
+            add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+            add_header X-Content-Type-Options nosniff always;
+            try_files $uri =404;
+        }
+
+        location = /index.html {
+            add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+            add_header Referrer-Policy strict-origin-when-cross-origin always;
+            try_files $uri =404;
+        }
+
+        location ^~ /static/ {
+            add_header Cache-Control "public, max-age=31536000, immutable" always;
+            try_files $uri =404;
+        }
+
+        location ^~ /api/ {
+            include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
+            fastcgi_pass servenest_php;
+            # A shop Day End is reconciled synchronously and may take minutes.
+            fastcgi_read_timeout 310s;
+            fastcgi_pass_request_headers on;
+            fastcgi_param SCRIPT_FILENAME "{{INSTALL_ROOT_NGINX}}/api/public/index.php";
+            fastcgi_param DOCUMENT_ROOT "{{INSTALL_ROOT_NGINX}}/api/public";
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param CONTENT_TYPE $content_type;
+            fastcgi_param CONTENT_LENGTH $content_length;
+            fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+            fastcgi_param HTTPS on;
+            fastcgi_param REDIRECT_STATUS 200;
+        }
+
+        location = /up {
+            include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
+            fastcgi_pass servenest_php;
+            fastcgi_pass_request_headers on;
+            fastcgi_param SCRIPT_FILENAME "{{INSTALL_ROOT_NGINX}}/api/public/index.php";
+            fastcgi_param DOCUMENT_ROOT "{{INSTALL_ROOT_NGINX}}/api/public";
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param HTTPS on;
+            fastcgi_param REDIRECT_STATUS 200;
+        }
+
+        location /assets/ {
+            alias "{{INSTALL_ROOT_NGINX}}/assets/";
+            add_header X-Content-Type-Options nosniff always;
+            autoindex off;
+        }
+
+        location /storage/ {
+            alias "{{INSTALL_ROOT_NGINX}}/api/storage/app/public/";
+            add_header X-Content-Type-Options nosniff always;
+            autoindex off;
+        }
+
+        location ~ \.php(?:/|$) {
+            return 404;
+        }
+
+        location ~ /\. {
+            deny all;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+
+    include "{{INSTALL_ROOT_NGINX}}/config/phpmyadmin-nginx.conf";
+}

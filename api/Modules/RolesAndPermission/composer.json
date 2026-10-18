@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/rolesandpermission",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\RolesAndPermission\\": "app/",
+            "Modules\\RolesAndPermission\\Database\\Factories\\": "database/factories/",
+            "Modules\\RolesAndPermission\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\RolesAndPermission\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,44 @@
+# phpMyAdmin is deliberately reachable only on this computer. The bundled
+# database is also bound to 127.0.0.1; no firewall rule is created for it.
+server {
+    listen 127.0.0.1:{{PHPMYADMIN_PORT}};
+    server_name localhost;
+    root "{{PHPMYADMIN_ROOT_NGINX}}";
+    index index.php;
+    autoindex off;
+    client_max_body_size 100M;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /index.php {
+        include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
+        fastcgi_pass servenest_php;
+        fastcgi_read_timeout 120s;
+        fastcgi_param SCRIPT_FILENAME "{{PHPMYADMIN_ROOT_NGINX}}/index.php";
+        fastcgi_param DOCUMENT_ROOT "{{PHPMYADMIN_ROOT_NGINX}}";
+        fastcgi_param SCRIPT_NAME /index.php;
+        fastcgi_param REDIRECT_STATUS 200;
+    }
+
+    location = /url.php {
+        include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
+        fastcgi_pass servenest_php;
+        fastcgi_param SCRIPT_FILENAME "{{PHPMYADMIN_ROOT_NGINX}}/url.php";
+        fastcgi_param DOCUMENT_ROOT "{{PHPMYADMIN_ROOT_NGINX}}";
+        fastcgi_param SCRIPT_NAME /url.php;
+        fastcgi_param REDIRECT_STATUS 200;
+    }
+
+    location ^~ /vendor/ { return 404; }
+    location ^~ /libraries/ { return 404; }
+    location ^~ /templates/ { return 404; }
+    location ^~ /sql/ { return 404; }
+    location ^~ /locale/ { return 404; }
+    location ~ \.php(?:/|$) { return 404; }
+    location ~ /\. { return 404; }
+}

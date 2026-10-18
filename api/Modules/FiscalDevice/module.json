@@ -1,0 +1,11 @@
+{
+    "name": "FiscalDevice",
+    "alias": "fiscaldevice",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FiscalDevice\\Providers\\FiscalDeviceServiceProvider"
+    ],
+    "files": []
+}

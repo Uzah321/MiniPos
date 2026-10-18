@@ -1,0 +1,56 @@
+[PHP]
+engine=On
+short_open_tag=Off
+precision=14
+output_buffering=4096
+serialize_precision=-1
+expose_php=Off
+; A shop Day End is reconciled synchronously on the Back Office.
+max_execution_time=300
+max_input_time=120
+; A full BOM catalogue makes one configuration snapshot ~8 MB of JSON;
+; building or applying it peaks well above smaller limits.
+memory_limit=1G
+error_reporting=E_ALL
+display_errors=Off
+display_startup_errors=Off
+log_errors=On
+variables_order="GPCS"
+request_order="GP"
+post_max_size=100M
+upload_max_filesize=100M
+max_file_uploads=20
+default_socket_timeout=60
+date.timezone=Africa/Harare
+; Keep core path directives in [PHP]. An arbitrary section can cause PHP to
+; ignore extension_dir and fall back to another installation's extension tree.
+extension_dir="{{PHP_RUNTIME_ROOT}}\ext"
+sys_temp_dir="{{INSTALL_ROOT_PHP}}\run\php-temp"
+upload_tmp_dir="{{INSTALL_ROOT_PHP}}\run\php-temp"
+
+[CGI]
+cgi.force_redirect=0
+cgi.fix_pathinfo=0
+fastcgi.logging=0
+
+[Session]
+session.use_strict_mode=1
+session.cookie_httponly=1
+session.cookie_samesite=Lax
+
+[OpenSSL]
+openssl.cafile="{{PHP_RUNTIME_ROOT}}\extras\ssl\cacert.pem"
+
+[curl]
+curl.cainfo="{{PHP_RUNTIME_ROOT}}\extras\ssl\cacert.pem"
+
+[Extensions]
+extension=curl
+extension=fileinfo
+extension=gd
+extension=intl
+extension=mbstring
+extension=mysqli
+extension=openssl
+extension=pdo_mysql
+extension=zip

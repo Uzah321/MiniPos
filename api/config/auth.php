@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use Modules\Authentication\Models\PosUser;
 
 return [
 
@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'pos' => [
+            'driver' => 'sanctum',
+            'provider' => 'pos_users',
+        ],
     ],
 
     /*
@@ -64,7 +68,11 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+        'pos_users' => [
+            'driver' => 'eloquent',
+            'model' => PosUser::class,
         ],
 
         // 'users' => [

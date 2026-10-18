@@ -12,29 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->string('name');
-            $table->string('email')->nullable()->unique();
+            $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password')->nullable();
-            $table->string('employee_code')->nullable()->unique();
-            $table->string('pin_hash')->nullable();
-            $table->uuid('store_id')->nullable();
-            $table->string('authentication_mode')->default('both');
-            $table->string('status')->default('active');
-            $table->boolean('active')->default(true);
-            $table->unsignedSmallInteger('failed_login_attempts')->default(0);
-            $table->timestamp('locked_until')->nullable();
-            $table->timestamp('password_changed_at')->nullable();
-            $table->timestamp('pin_changed_at')->nullable();
-            $table->boolean('must_change_password')->default(false);
-            $table->boolean('must_change_pin')->default(false);
-            $table->timestamp('last_login_at')->nullable();
-            $table->json('meta')->nullable();
+            $table->string('password');
             $table->rememberToken();
             $table->timestamps();
-
-            $table->index('store_id');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -45,7 +29,7 @@ return new class extends Migration
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignUuid('user_id')->nullable()->index();
+            $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');

@@ -1,0 +1,11 @@
+{
+    "name": "FoodManufacturing",
+    "alias": "foodmanufacturing",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FoodManufacturing\\Providers\\FoodManufacturingServiceProvider"
+    ],
+    "files": []
+}

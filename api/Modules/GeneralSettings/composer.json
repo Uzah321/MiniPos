@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/generalsettings",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\GeneralSettings\\": "app/",
+            "Modules\\GeneralSettings\\Database\\Factories\\": "database/factories/",
+            "Modules\\GeneralSettings\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\GeneralSettings\\Tests\\": "tests/"
+        }
+    }
+}

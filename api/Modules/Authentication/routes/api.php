@@ -1,83 +1,109 @@
 <?php
 
+use App\Http\Middleware\CheckCompanyLicense;
+use App\Http\Middleware\ResolveCompanyFromDomain;
+use App\Http\Middleware\ResolveTillFromToken;
+use App\Services\Auth\ManagerApprovalRateLimiter;
+use App\Services\Auth\PosLoginRateLimiter;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Route;
-use Modules\Authentication\AuthController;
-use Modules\Authentication\Http\Controllers\AdminUserController;
-use Modules\Authentication\Http\Controllers\AssignmentController;
-use Modules\Authentication\Http\Controllers\BackOfficeAuthController;
-use Modules\Authentication\Http\Controllers\CredentialController;
-use Modules\Authentication\Http\Controllers\MfaController;
-use Modules\Authentication\Http\Controllers\OrganisationController;
-use Modules\Authentication\Http\Controllers\PasswordPolicyController;
-use Modules\Authentication\Http\Controllers\PosAuthController;
-use Modules\Authentication\Http\Controllers\RolePermissionController;
-use Modules\Authentication\Http\Controllers\SessionController;
-use Modules\Authentication\Http\Middleware\EnsurePermission;
+use Modules\Authentication\Http\Controllers\AccessAssignmentController;
+use Modules\Authentication\Http\Controllers\AuthPolicyController;
+use Modules\Authentication\Http\Controllers\ManagerApprovalController;
+use Modules\Authentication\Http\Controllers\PosGeneralSettingController;
+use Modules\Authentication\Http\Controllers\PosUserController;
 
-Route::prefix('v1')->middleware('throttle:api')->group(function () {
-    Route::post('/auth/back-office/login', [BackOfficeAuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/auth/back-office/mfa', [MfaController::class, 'challenge'])->middleware('throttle:login');
-    Route::post('/auth/pos/login', [PosAuthController::class, 'login'])->middleware('throttle:login');
+Route::middleware([
+    ResolveCompanyFromDomain::class,
+])->prefix('pos-auth')->group(function () {
+    Route::post('/back-office/login', [PosUserController::class, 'loginBackOffice'])
+        ->middleware(ThrottleRequests::using(PosLoginRateLimiter::LOGIN));
+    Route::post('/front-office/login', [PosUserController::class, 'loginFrontOffice'])
+        ->middleware([
+            ResolveTillFromToken::class,
+            ThrottleRequests::using(PosLoginRateLimiter::LOGIN),
+        ]);
+    Route::get('/front-office/login-mode', [PosUserController::class, 'frontOfficeLoginMode'])
+        ->middleware([
+            ResolveTillFromToken::class,
+            ThrottleRequests::using(PosLoginRateLimiter::LOGIN_MODE),
+        ]);
 
-    // Backwards-compatible POS login. New clients should use /auth/pos/login.
-    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    // Compatibility path for deployed clients. PosUserController still
+    // enforces the declared workspace, including mandatory till binding for
+    // every Front Office request and password-only Back Office login.
+    Route::post('/login', [PosUserController::class, 'login'])
+        ->middleware(ThrottleRequests::using(PosLoginRateLimiter::LOGIN));
+    Route::get('/login-mode', [PosUserController::class, 'loginMode'])
+        ->middleware([
+            ResolveTillFromToken::class,
+            ThrottleRequests::using(PosLoginRateLimiter::LOGIN_MODE),
+        ]);
+});
 
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/auth/logout', [BackOfficeAuthController::class, 'logout']);
-        Route::get('/auth/me', [BackOfficeAuthController::class, 'me']);
-        Route::put('/auth/password', [CredentialController::class, 'password']);
-        Route::put('/auth/pin', [CredentialController::class, 'pin']);
-        Route::post('/auth/mfa/setup', [MfaController::class, 'setup']);
-        Route::post('/auth/mfa/confirm', [MfaController::class, 'confirm']);
-        Route::get('/auth/sessions', [SessionController::class, 'index']);
-        Route::delete('/auth/sessions/others', [SessionController::class, 'destroyOthers']);
-        Route::delete('/auth/sessions/{session}', [SessionController::class, 'destroy']);
+Route::post('/pos-auth/back-office/select-company', [PosUserController::class, 'selectBackOfficeCompany'])
+    ->middleware([
+        'auth:sanctum',
+        'workspace:back-office',
+        'platform.admin',
+        'throttle:20,1',
+    ]);
 
-        Route::prefix('foundation')->group(function (): void {
-            Route::get('/countries', [OrganisationController::class, 'countries'])
-                ->middleware(EnsurePermission::class.':countries.view');
-            Route::post('/countries', [OrganisationController::class, 'storeCountry']);
-            Route::patch('/countries/{country}', [OrganisationController::class, 'updateCountry']);
+Route::middleware([
+    'auth:sanctum',
+    ResolveCompanyFromDomain::class,
+    CheckCompanyLicense::class,
+])->prefix('pos-auth')->group(function () {
+    Route::get('/me', [PosUserController::class, 'me']);
+    Route::post('/logout', [PosUserController::class, 'logout']);
+    Route::post('/logout-all', [PosUserController::class, 'logoutAll']);
+});
 
-            Route::get('/brands', [OrganisationController::class, 'brands'])
-                ->middleware(EnsurePermission::class.':brands.view');
-            Route::post('/brands', [OrganisationController::class, 'storeBrand']);
-            Route::patch('/brands/{brand}', [OrganisationController::class, 'updateBrand']);
-
-            Route::get('/complexes', [OrganisationController::class, 'complexes'])
-                ->middleware(EnsurePermission::class.':complexes.view');
-            Route::post('/complexes', [OrganisationController::class, 'storeComplex']);
-            Route::patch('/complexes/{complex}', [OrganisationController::class, 'updateComplex']);
-
-            Route::get('/stores', [OrganisationController::class, 'stores'])
-                ->middleware(EnsurePermission::class.':stores.view');
-            Route::post('/stores', [OrganisationController::class, 'storeStore']);
-            Route::patch('/stores/{store}', [OrganisationController::class, 'updateStore']);
-
-            Route::get('/terminals', [OrganisationController::class, 'terminals'])
-                ->middleware(EnsurePermission::class.':terminals.view');
-            Route::post('/terminals', [OrganisationController::class, 'storeTerminal']);
-            Route::patch('/terminals/{terminal}', [OrganisationController::class, 'updateTerminal']);
-
-            Route::get('/users', [AdminUserController::class, 'index'])
-                ->middleware(EnsurePermission::class.':users.view');
-            Route::post('/users', [AdminUserController::class, 'store']);
-            Route::patch('/users/{user}', [AdminUserController::class, 'update']);
-            Route::post('/users/{user}/assignments', [AssignmentController::class, 'store']);
-            Route::delete('/users/{user}/assignments/{assignment}', [AssignmentController::class, 'destroy']);
-
-            Route::get('/roles', [RolePermissionController::class, 'roles'])
-                ->middleware(EnsurePermission::class.':roles.view');
-            Route::post('/roles', [RolePermissionController::class, 'storeRole']);
-            Route::patch('/roles/{role}', [RolePermissionController::class, 'updateRole']);
-            Route::get('/permissions', [RolePermissionController::class, 'permissions'])
-                ->middleware(EnsurePermission::class.':permissions.view');
-            Route::post('/permissions', [RolePermissionController::class, 'storePermission']);
-
-            Route::get('/password-policies', [PasswordPolicyController::class, 'index'])
-                ->middleware(EnsurePermission::class.':password-policies.view');
-            Route::post('/password-policies', [PasswordPolicyController::class, 'store']);
-            Route::patch('/password-policies/{passwordPolicy}', [PasswordPolicyController::class, 'update']);
-        });
+Route::middleware([
+    'auth:sanctum',
+    ResolveCompanyFromDomain::class,
+    CheckCompanyLicense::class,
+    'workspace:back-office',
+])->prefix('auth-admin')->group(function () {
+    Route::middleware('company.permission:manage_access_assignments')->group(function () {
+        Route::get('/access-assignments', [AccessAssignmentController::class, 'index']);
+        Route::post('/access-assignments', [AccessAssignmentController::class, 'store']);
+        Route::post('/access-assignments/{assignmentId}/revoke', [AccessAssignmentController::class, 'revoke']);
     });
+
+    Route::middleware('company.permission:manage_authentication_policies')->group(function () {
+        Route::get('/policies', [AuthPolicyController::class, 'index']);
+        Route::get('/policies/effective', [AuthPolicyController::class, 'effective']);
+        Route::post('/policies', [AuthPolicyController::class, 'store']);
+        Route::post('/policies/{policyId}/disable', [AuthPolicyController::class, 'disable']);
+    });
+});
+
+Route::middleware([
+    'auth:sanctum',
+    ResolveCompanyFromDomain::class,
+    CheckCompanyLicense::class,
+])->group(function () {
+    Route::get('/pos-users', [PosUserController::class, 'index'])
+        ->middleware(['workspace:back-office', 'company.permission:manage_user']);
+    Route::post('/pos-users', [PosUserController::class, 'store'])
+        ->middleware(['workspace:back-office', 'company.permission:create_user']);
+    Route::get('/pos-users/{posUserId}', [PosUserController::class, 'show'])
+        ->middleware(['workspace:back-office', 'company.permission:manage_user']);
+    Route::put('/pos-users/{posUserId}', [PosUserController::class, 'update'])
+        ->middleware(['workspace:back-office', 'company.permission:manage_user']);
+    Route::delete('/pos-users/{posUserId}', [PosUserController::class, 'destroy'])
+        ->middleware(['workspace:back-office', 'company.permission:manage_user']);
+    Route::post('/pos-users/close-active-shift', [PosUserController::class, 'closeActiveShift'])
+        ->middleware(['workspace:front-office', 'resolve.till']);
+    Route::get('/pos/general-settings/barcode-scan', [PosGeneralSettingController::class, 'barcodeScan']);
+    Route::get('/pos/general-settings/show', [PosGeneralSettingController::class, 'show']);
+    Route::get('/pos/general-settings/touch-keyboard', [PosGeneralSettingController::class, 'touchKeyboard']);
+
+    Route::get('/pos/general-settings/sales-screen-layout', [PosGeneralSettingController::class, 'salesScreenLayout']);
+    Route::post('/pos/general-settings/sales-screen-layout', [PosGeneralSettingController::class, 'updateSalesScreenLayout'])
+        ->middleware('workspace:back-office');
+
+    Route::post('/pos/manager-approvals/verify', [ManagerApprovalController::class, 'verify'])
+        ->middleware(ThrottleRequests::using(ManagerApprovalRateLimiter::VERIFY));
 });
