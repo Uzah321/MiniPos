@@ -60,7 +60,7 @@ return [
         ],
         'credential' => [
             'password' => [
-                'minimum_length' => 12,
+                'minimum_length' => 6,
                 'maximum_length' => 128,
                 'require_uppercase' => true,
                 'require_lowercase' => true,

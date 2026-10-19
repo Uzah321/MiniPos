@@ -395,14 +395,19 @@ class EnterpriseHierarchyService
             ->whereNull('brand_catalogue.deleted_at')
             ->where('products.is_active', true)
             ->whereNull('products.deleted_at')
-            // The brand catalogue is shared by every shop of the brand; a
-            // branch's own menu item is sold only at that branch's shop.
-            ->when(Schema::hasColumn('products', 'branch_id'), fn ($scope) => $scope->where(
-                fn ($owner) => $owner->whereNull('products.branch_id')
-                    ->orWhere('products.branch_id', $shop->branch_id)
-                    ->when(Schema::hasColumn('products', 'is_global'), fn ($shared) => $shared
-                        ->orWhere('products.is_global', true))
-            ))
+            // A till sells exactly the menu that Back Office Menu Item
+            // Management lists for its branch (see ProductController::
+            // applyBranchOnlyMenuVisibility): the branch's own menu items, plus
+            // legacy shared items that have a selling price for this branch
+            // and an active menu recipe. Bulk-imported brand catalogue items
+            // stay off the till until the branch adopts them.
+            ->when(
+                Schema::hasColumn('products', 'branch_id') && Schema::hasColumn('products', 'is_global'),
+                fn ($scope) => $scope->where(fn ($menu) => $this->branchMenuOwnership($menu, (string) $shop->branch_id)),
+                fn ($scope) => $scope->when(Schema::hasColumn('products', 'branch_id'), fn ($legacy) => $legacy->where(
+                    fn ($owner) => $owner->whereNull('products.branch_id')->orWhere('products.branch_id', $shop->branch_id)
+                ))
+            )
             ->select([
                 'products.*',
                 'brand_catalogue.external_code',
@@ -563,6 +568,36 @@ class EnterpriseHierarchyService
         }
 
         return $query->orderBy('products.name');
+    }
+
+    /**
+     * The menu items Back Office Menu Item Management lists for a branch:
+     * its own (branch-owned) items, and legacy shared items that carry an
+     * active selling price for the branch and an active menu recipe.
+     */
+    private function branchMenuOwnership(Builder $menu, string $branchId): Builder
+    {
+        $menu->where(fn ($owned) => $owned->where('products.is_global', false)
+            ->where('products.branch_id', $branchId));
+
+        if (! Schema::hasTable('food_recipes') || ! Schema::hasTable('product_prices')) {
+            return $menu;
+        }
+
+        return $menu->orWhere(fn ($legacy) => $legacy->where('products.is_global', true)
+            ->whereNull('products.branch_id')
+            ->whereExists(fn ($price) => $price->selectRaw('1')
+                ->from('product_prices')
+                ->whereColumn('product_prices.product_id', 'products.id')
+                ->where('product_prices.branch_id', $branchId)
+                ->where('product_prices.is_active', true)
+                ->when(Schema::hasColumn('product_prices', 'deleted_at'), fn ($live) => $live->whereNull('product_prices.deleted_at')))
+            ->whereExists(fn ($recipe) => $recipe->selectRaw('1')
+                ->from('food_recipes')
+                ->whereColumn('food_recipes.menu_product_id', 'products.id')
+                ->where('food_recipes.recipe_type', 'menu')
+                ->where('food_recipes.is_active', true)
+                ->when(Schema::hasColumn('food_recipes', 'deleted_at'), fn ($live) => $live->whereNull('food_recipes.deleted_at'))));
     }
 
     private function scopeActiveTradingSchedules(Builder $query, Shop $shop): Builder

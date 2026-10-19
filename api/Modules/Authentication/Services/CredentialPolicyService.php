@@ -22,7 +22,7 @@ final class CredentialPolicyService
     public function passwordViolations(string $password, AuthorizationScope $scope): array
     {
         $policy = $this->effectivePolicy($scope);
-        $minimum = max(8, (int) $policy->get('password.minimum_length', 12));
+        $minimum = max(6, (int) $policy->get('password.minimum_length', 6));
         $maximum = min(1024, max($minimum, (int) $policy->get('password.maximum_length', 128)));
         $length = mb_strlen($password);
         $violations = [];

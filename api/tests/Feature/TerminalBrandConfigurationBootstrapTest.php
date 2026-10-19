@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Modules\Company\Models\Company;
 use Modules\GeneralSettings\Http\Controllers\TerminalConfigurationBootstrapController;
 use Modules\GeneralSettings\Models\PosTill;
@@ -195,6 +196,45 @@ class TerminalBrandConfigurationBootstrapTest extends TestCase
             'price' => 1, 'currency' => 'USD', 'is_active' => true,
         ]);
         $this->assertFalse(DB::table('brand_products')->where('product_id', $global->id)->exists());
+    }
+
+    public function test_imported_brand_catalogue_items_stay_off_the_till_until_the_back_office_lists_them(): void
+    {
+        $now = now();
+        DB::table('products')->insert([
+            'id' => 'imported-cascade', 'company_id' => 'company-a', 'is_global' => true, 'branch_id' => null,
+            'category_id' => 'category-a', 'name' => '1 Litre Cascade [ZWPZC11P435S00]', 'code' => 'ZWPZC11P435S00',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('brand_products')->insert([
+            'id' => 'catalog-imported', 'company_id' => 'company-a', 'brand_id' => 'brand-a',
+            'product_id' => 'imported-cascade', 'item_kind' => 'menu_item', 'is_active' => true,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('menu_item_channels')->insert([
+            'id' => 'channel-imported', 'company_id' => 'company-a', 'brand_id' => 'brand-a',
+            'product_id' => 'imported-cascade', 'channel_code' => 'POS', 'price_inclusive' => 2.5,
+            'currency_code' => 'USD', 'is_available' => true, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $this->assertSame(['menu-visible'], $this->menuItemIds(), 'A bulk-imported catalogue item the Back Office does not list must not reach the till.');
+
+        DB::table('product_prices')->insert([
+            'id' => (string) Str::uuid(), 'company_id' => 'company-a', 'product_id' => 'imported-cascade',
+            'branch_id' => 'branch-a', 'price' => 2.5, 'currency' => 'USD', 'is_active' => true,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $this->assertSame(['menu-visible'], $this->menuItemIds(), 'A branch price alone does not make a shared item part of the branch menu.');
+
+        DB::table('food_recipes')->insert([
+            'id' => 'recipe-imported', 'company_id' => 'company-a', 'brand_id' => 'brand-a',
+            'menu_product_id' => 'imported-cascade', 'name' => 'Cascade recipe', 'recipe_type' => 'menu',
+            'is_current' => true, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $this->assertEqualsCanonicalizing(
+            ['menu-visible', 'imported-cascade'],
+            $this->menuItemIds(),
+            'A shared item with a branch price and an active menu recipe is listed by the Back Office, so it sells.'
+        );
     }
 
     public function test_configuration_etag_tracks_all_material_brand_menu_relations(): void
@@ -613,13 +653,15 @@ class TerminalBrandConfigurationBootstrapTest extends TestCase
             'id' => 'subcategory-a', 'company_id' => 'company-a', 'category_id' => 'category-a',
             'name' => 'Classic Pizza', 'created_at' => $now, 'updated_at' => $now,
         ]);
+        // Menu items are branch-owned, as Back Office Menu Item Management
+        // creates them; a till only sells what that screen lists for it.
         DB::table('products')->insert([
-            ['id' => 'menu-visible', 'company_id' => 'company-a', 'category_id' => 'category-a', 'sub_category_id' => 'subcategory-a', 'name' => 'Classic Pizza', 'code' => 'PIZZA1', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 'menu-hidden', 'company_id' => 'company-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Hidden Pizza', 'code' => 'PIZZA2', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 'menu-other-brand', 'company_id' => 'company-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Chicken Meal', 'code' => 'CHK1', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 'ingredient-flour', 'company_id' => 'company-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Flour', 'code' => 'FLOUR', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 'modifier-cheese', 'company_id' => 'company-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Extra cheese', 'code' => 'CHEESE', 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 'modifier-olive', 'company_id' => 'company-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Olives', 'code' => 'OLIVE', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'menu-visible', 'company_id' => 'company-a', 'is_global' => false, 'branch_id' => 'branch-a', 'category_id' => 'category-a', 'sub_category_id' => 'subcategory-a', 'name' => 'Classic Pizza', 'code' => 'PIZZA1', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'menu-hidden', 'company_id' => 'company-a', 'is_global' => false, 'branch_id' => 'branch-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Hidden Pizza', 'code' => 'PIZZA2', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'menu-other-brand', 'company_id' => 'company-a', 'is_global' => false, 'branch_id' => 'branch-a', 'category_id' => null, 'sub_category_id' => null, 'name' => 'Chicken Meal', 'code' => 'CHK1', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'ingredient-flour', 'company_id' => 'company-a', 'is_global' => true, 'branch_id' => null, 'category_id' => null, 'sub_category_id' => null, 'name' => 'Flour', 'code' => 'FLOUR', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'modifier-cheese', 'company_id' => 'company-a', 'is_global' => true, 'branch_id' => null, 'category_id' => null, 'sub_category_id' => null, 'name' => 'Extra cheese', 'code' => 'CHEESE', 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 'modifier-olive', 'company_id' => 'company-a', 'is_global' => true, 'branch_id' => null, 'category_id' => null, 'sub_category_id' => null, 'name' => 'Olives', 'code' => 'OLIVE', 'created_at' => $now, 'updated_at' => $now],
         ]);
         DB::table('brand_products')->insert([
             ['id' => 'catalog-visible', 'company_id' => 'company-a', 'brand_id' => 'brand-a', 'product_id' => 'menu-visible', 'item_kind' => 'menu_item', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],

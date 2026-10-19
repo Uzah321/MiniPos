@@ -126,7 +126,7 @@ final class AuthPolicySettingsValidator
                 if (array_key_exists('minimum_length', $password)) {
                     $this->integerRange(
                         $password['minimum_length'],
-                        8,
+                        6,
                         128,
                         'settings.password.minimum_length',
                         $errors
@@ -135,7 +135,7 @@ final class AuthPolicySettingsValidator
                 if (array_key_exists('maximum_length', $password)) {
                     $this->integerRange(
                         $password['maximum_length'],
-                        8,
+                        6,
                         1024,
                         'settings.password.maximum_length',
                         $errors

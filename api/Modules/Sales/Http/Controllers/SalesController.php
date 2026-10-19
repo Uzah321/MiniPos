@@ -4798,6 +4798,7 @@ use App\Models\MobileSaleReconciliation;
 use App\Services\Sync\MobileSaleReconciliationService;
 use App\Services\Sync\MobileSaleReplayWindow;
 use App\Services\Shifts\ShiftPolicyService;
+use App\Services\Shifts\ShiftResolverService;
 use App\Services\Sync\MobileSaleSnapshot;
 use App\Services\Zimra\ZimraReceiptService;
 use App\Services\Zimra\MobileFiscalReceiptService;
@@ -5969,8 +5970,15 @@ class SalesController extends Controller
                     );
                 }
 
+                // Front Office login opens a shift only when shifts are enabled
+                // for the shop, so without them signing in again cannot help.
+                $shiftConfig = app(ShiftResolverService::class)
+                    ->getConfig((string) $company->id, (string) $till->branch_id);
+
                 return response()->json([
-                    'message' => 'No open cashier shift session was found. Sign out and log in to Front Office again to open or resume the assigned shift.',
+                    'message' => $shiftConfig?->enable_shifts
+                        ? 'No open cashier shift session was found. Sign out and log in to Front Office again to open or resume the assigned shift.'
+                        : 'This shop has no shifts set up, so sales cannot be saved. In Back Office open Store Configuration → Shift Settings for this shop, enable shifts, then sign out of the till and sign in again.',
                     'code' => 'SHIFT_SESSION_NOT_OPEN',
                 ], 422);
             }

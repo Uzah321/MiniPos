@@ -127,9 +127,11 @@ function Get-ExistingDatabaseIdentity([string] $Environment) {
 }
 
 function Read-ShopConnection([string] $Path) {
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf) -or
-        [IO.Path]::GetExtension($Path) -ine '.servenest-foh') {
-        throw 'Select the .servenest-foh shop connection file exported by the ServeNest Back Office installer.'
+    if ([IO.Path]::GetExtension($Path) -ine '.servenest-foh') {
+        throw "Select the .servenest-foh shop connection file exported by the ServeNest Back Office installer (received: $Path)."
+    }
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "The shop connection file could not be read at $Path. Copy it to a local folder such as C:\ServeNestSetup and select it again."
     }
     try {
         $document = [IO.File]::ReadAllText($Path) | ConvertFrom-Json

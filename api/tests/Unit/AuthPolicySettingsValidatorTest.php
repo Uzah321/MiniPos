@@ -81,7 +81,7 @@ class AuthPolicySettingsValidatorTest extends TestCase
             ['authentication', ['lockout' => ['maximum_attempts' => 101]], 'settings.lockout.maximum_attempts'],
             ['authentication', ['lockout' => ['decay_seconds' => 29]], 'settings.lockout.decay_seconds'],
             ['authentication', ['lockout' => ['decay_seconds' => 86401]], 'settings.lockout.decay_seconds'],
-            ['credential', ['password' => ['minimum_length' => 7, 'maximum_length' => 50]], 'settings.password.minimum_length'],
+            ['credential', ['password' => ['minimum_length' => 5, 'maximum_length' => 50]], 'settings.password.minimum_length'],
             ['credential', ['password' => ['minimum_length' => 50, 'maximum_length' => 20]], 'settings.password.minimum_length'],
             ['credential', ['password' => ['minimum_length' => 12]], 'settings.password.maximum_length'],
             ['credential', ['password' => ['history_count' => 25]], 'settings.password.history_count'],

@@ -56,6 +56,32 @@ http {
             try_files $uri =404;
         }
 
+        location ^~ /api/pos/sync/ {
+            # Configuration snapshots are several MB of JSON; compress them
+            # so shop POS servers on slow links finish inside the sync timeout.
+            gzip on;
+            gzip_comp_level 5;
+            gzip_min_length 1024;
+            gzip_types application/json;
+            gzip_vary on;
+            include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
+            fastcgi_pass servenest_php;
+            # A shop Day End is reconciled synchronously and may take minutes.
+            fastcgi_read_timeout 310s;
+            fastcgi_pass_request_headers on;
+            fastcgi_param SCRIPT_FILENAME "{{INSTALL_ROOT_NGINX}}/api/public/index.php";
+            fastcgi_param DOCUMENT_ROOT "{{INSTALL_ROOT_NGINX}}/api/public";
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param CONTENT_TYPE $content_type;
+            fastcgi_param CONTENT_LENGTH $content_length;
+            fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+            fastcgi_param HTTPS on;
+            fastcgi_param REDIRECT_STATUS 200;
+        }
+
         location ^~ /api/ {
             include "{{NGINX_RUNTIME_NGINX}}/conf/fastcgi_params";
             fastcgi_pass servenest_php;

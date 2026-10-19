@@ -228,6 +228,27 @@ begin
   end;
 end;
 
+{ The configuration script runs as a separate process and has been seen to
+  miss a connection file the wizard could read (for example on the user's
+  Desktop). Hand it a copy in the same protected folder as its configuration
+  file instead; Setup removes its temporary folder when it closes. }
+function ProtectedConnectionFile: String;
+var
+  Source, Directory: String;
+begin
+  Source := Trim(ConnectionPage.Values[0]);
+  Result := Source;
+  if Source = '' then
+    Exit;
+  Directory := ExpandConstant('{tmp}\protected-config');
+  if ProtectExtractionDirectory(Directory) <> '' then
+    Exit;
+  if FileCopy(Source, Directory + '\shop-connection.servenest-foh', False) then
+    Result := Directory + '\shop-connection.servenest-foh'
+  else
+    Log('Could not copy the shop connection file ' + Source + '; passing the original path.');
+end;
+
 function BuildConfigurationJson: String;
 begin
   if TillProfileSelected then
@@ -246,7 +267,7 @@ begin
       JsonPair('database_port', Trim(DatabasePage.Values[0])) + ', ' +
       JsonPair('database_name', Trim(DatabasePage.Values[1])) + ', ' +
       JsonPair('database_user', Trim(DatabasePage.Values[2])) + ', ' +
-      JsonPair('connection_file', Trim(ConnectionPage.Values[0])) + ', ' +
+      JsonPair('connection_file', ProtectedConnectionFile) + ', ' +
       JsonPair('previously_running_services_file', PreviouslyRunningFile) + '}';
 end;
 

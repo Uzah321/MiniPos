@@ -256,6 +256,33 @@ begin
   end;
 end;
 
+{ A first installation whose configuration failed is rolled back, but the
+  configuration script's logs folder stays behind. Treat a folder holding only
+  that logs folder as empty so "run Setup again with the same folder" works. }
+function HoldsOnlyInstallerLogs(const Path: String): Boolean;
+var
+  FindRec: TFindRec;
+begin
+  Result := False;
+  if FindFirst(AddBackslash(Path) + '*', FindRec) then
+  try
+    repeat
+      if (FindRec.Name <> '.') and (FindRec.Name <> '..') then
+      begin
+        if (CompareText(FindRec.Name, 'logs') <> 0)
+          or ((FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) = 0) then
+        begin
+          Result := False;
+          Exit;
+        end;
+        Result := True;
+      end;
+    until not FindNext(FindRec);
+  finally
+    FindClose(FindRec);
+  end;
+end;
+
 { Returns a message when the chosen folder must not be used. A ServeNest
   installation never adopts another product's database or a source
   checkout; a Salexa POS 4.x folder needs a separate data migration. }
@@ -275,7 +302,7 @@ begin
     Result := 'Use a folder path with only letters, numbers, dots, dashes and underscores (no spaces), for example C:\ServeNest\{#Edition}.';
     Exit;
   end;
-  if not DirExists(Directory) or IsDirectoryEmpty(Directory) then
+  if not DirExists(Directory) or IsDirectoryEmpty(Directory) or HoldsOnlyInstallerLogs(Directory) then
     Exit;
 
   Bundle := ReadTextFile(AddBackslash(Directory) + 'BUNDLE.json');

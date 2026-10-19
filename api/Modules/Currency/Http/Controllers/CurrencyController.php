@@ -140,6 +140,10 @@ class CurrencyController extends Controller
                     ? $request->boolean('is_base_currency')
                     : false;
 
+                if (!$makeBase && $isActive && !$this->hasOtherActiveBaseCurrency((string) $company->id, $branchId)) {
+                    $makeBase = true;
+                }
+
                 if ($makeBase) {
                     Currency::where('company_id', $company->id)
                         ->where('branch_id', $branchId)
@@ -301,6 +305,13 @@ class CurrencyController extends Controller
                 $makeBase = $request->has('is_base_currency')
                     ? $request->boolean('is_base_currency')
                     : $currency->is_base_currency;
+                $isActive = $request->has('is_active')
+                    ? $request->boolean('is_active')
+                    : (bool) $currency->is_active;
+
+                if (!$makeBase && $isActive && !$this->hasOtherActiveBaseCurrency((string) $company->id, $branchId, (string) $currency->id)) {
+                    $makeBase = true;
+                }
 
                 if ($makeBase) {
                     Currency::where('company_id', $company->id)
@@ -317,9 +328,7 @@ class CurrencyController extends Controller
                     'country' => $request->filled('country')
                         ? trim((string) $request->input('country'))
                         : null,
-                    'is_active' => $request->has('is_active')
-                        ? $request->boolean('is_active')
-                        : $currency->is_active,
+                    'is_active' => $isActive,
                     'is_base_currency' => $makeBase,
                 ]);
 
@@ -459,6 +468,25 @@ class CurrencyController extends Controller
             'message' => 'Currency rate added successfully.',
             'data' => $rate,
         ], 201);
+    }
+
+    /**
+     * A shop cannot complete a sale without an active base currency (its own
+     * or a company-wide one), so saving its only active currency as non-base
+     * would leave every sale failing with "Base currency is not configured".
+     */
+    private function hasOtherActiveBaseCurrency(string $companyId, ?string $branchId, ?string $exceptCurrencyId = null): bool
+    {
+        return Currency::where('company_id', $companyId)
+            ->where('is_base_currency', true)
+            ->where('is_active', true)
+            ->when($exceptCurrencyId, fn ($query) => $query->where('id', '!=', $exceptCurrencyId))
+            ->when(
+                $branchId,
+                fn ($query) => $query->forBranchOrGlobal($branchId),
+                fn ($query) => $query->whereNull('branch_id')
+            )
+            ->exists();
     }
 
     private function publishMobileConfiguration(string $companyId, ?string $branchId): void

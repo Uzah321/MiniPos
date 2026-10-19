@@ -218,8 +218,11 @@ Copy-Tree $php $stagePhp -ExcludeDirectories @((Join-Path $php 'dev'), (Join-Pat
 New-Item -ItemType Directory -Force -Path (Join-Path $stagePhp 'extras\ssl') | Out-Null
 Copy-Item -LiteralPath $CaBundlePath -Destination (Join-Path $stagePhp 'extras\ssl\cacert.pem') -Force
 
+# Salexa-era nginx folders may hold a stray phpMyAdmin copy; phpMyAdmin is
+# staged once, from -PhpMyAdminSource, below.
 Copy-Tree $nginx (Join-Path $stageRoot 'runtime\nginx') `
-    -ExcludeDirectories @((Join-Path $nginx 'logs'), (Join-Path $nginx 'temp'), (Join-Path $nginx 'html'), (Join-Path $nginx 'contrib')) `
+    -ExcludeDirectories @((Join-Path $nginx 'logs'), (Join-Path $nginx 'temp'), (Join-Path $nginx 'html'), (Join-Path $nginx 'contrib'),
+        (Join-Path $nginx 'phpmyadmin')) `
     -ExcludeFiles @('*.log', '*.pid')
 New-Item -ItemType Directory -Force -Path (Join-Path $stageRoot 'runtime\nssm\win64') | Out-Null
 Copy-Item -LiteralPath $nssmExecutable -Destination (Join-Path $stageRoot 'runtime\nssm\win64\nssm.exe')
@@ -231,9 +234,12 @@ Copy-Tree $database (Join-Path $stageRoot 'runtime\database') `
     -ExcludeFiles @('*.err', '*.pid', '*.log', 'my.ini', 'my.cnf', '*.sql')
 
 # phpMyAdmin without any machine configuration, temporary files or setup UI.
+# Its sql\ folder only creates the optional configuration-storage tables,
+# which ServeNest does not configure, and *.sql files may never ship.
 Copy-Tree $phpMyAdmin (Join-Path $stageRoot 'runtime\phpmyadmin') `
     -ExcludeDirectories @((Join-Path $phpMyAdmin 'tmp'), (Join-Path $phpMyAdmin 'setup'),
-        (Join-Path $phpMyAdmin 'examples'), (Join-Path $phpMyAdmin 'doc'), (Join-Path $phpMyAdmin 'test')) `
+        (Join-Path $phpMyAdmin 'examples'), (Join-Path $phpMyAdmin 'doc'), (Join-Path $phpMyAdmin 'test'),
+        (Join-Path $phpMyAdmin 'sql')) `
     -ExcludeFiles @('config.inc.php', '*.log')
 
 Write-Host 'Staging the web build and installer scripts...'

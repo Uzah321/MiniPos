@@ -152,9 +152,11 @@ class SalesCheckoutPolicyTest extends TestCase
         $this->requireDatabase();
 
         $this->insertShop('branch-a');
-        $this->insertProduct('allowed-finished-good', 'finished_good');
+        // Only what Back Office Menu Item Management lists for branch-a is
+        // sellable there: unowned or imported catalogue items are not.
+        $this->insertProduct('denied-unowned-catalogue', 'finished_good');
         $this->insertProduct('allowed-current-branch', 'finished_good', branchId: 'branch-a');
-        $this->insertProduct('allowed-global-other-branch', 'finished_good', branchId: 'branch-b', isGlobal: true);
+        $this->insertProduct('denied-global-other-branch', 'finished_good', branchId: 'branch-b', isGlobal: true);
         $this->insertProduct('denied-other-branch', 'finished_good', branchId: 'branch-b');
         $this->insertProduct('denied-simple', 'simple');
         $this->insertProduct('denied-raw', 'raw_material');
@@ -162,9 +164,9 @@ class SalesCheckoutPolicyTest extends TestCase
         $this->insertProduct('denied-deleted', 'finished_good', deletedAt: '2026-10-07 10:00:00');
         $this->insertProduct('denied-foreign-company', 'finished_good', companyId: 'company-b');
         foreach ([
-            'allowed-finished-good',
+            'denied-unowned-catalogue',
             'allowed-current-branch',
-            'allowed-global-other-branch',
+            'denied-global-other-branch',
             'denied-other-branch',
             'denied-simple',
             'denied-raw',
@@ -188,8 +190,6 @@ class SalesCheckoutPolicyTest extends TestCase
 
         $this->assertSame([
             'allowed-current-branch',
-            'allowed-finished-good',
-            'allowed-global-other-branch',
         ], $query->orderBy('id')->pluck('id')->all());
     }
 

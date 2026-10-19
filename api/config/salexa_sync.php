@@ -52,7 +52,9 @@ return [
 
     'http' => [
         'connect_timeout_seconds' => (int) $syncEnv('CONNECT_TIMEOUT_SECONDS', 5),
-        'timeout_seconds' => (int) $syncEnv('TIMEOUT_SECONDS', 30),
+        // A configuration snapshot with a full brand catalogue is several MB;
+        // on a slow shop link 30 seconds was not enough to download it.
+        'timeout_seconds' => (int) $syncEnv('TIMEOUT_SECONDS', 120),
         // Day End is an idempotent, signed command which may need longer than
         // an ordinary push/pull request while the cloud reconciles a branch.
         'day_end_timeout_seconds' => (int) $syncEnv('DAY_END_TIMEOUT_SECONDS', 300),

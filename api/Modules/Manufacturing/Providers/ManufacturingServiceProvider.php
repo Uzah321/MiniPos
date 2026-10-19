@@ -78,6 +78,13 @@ class ManufacturingServiceProvider extends ServiceProvider
      */
     protected function registerConfig(): void
     {
+        // A cached configuration already contains this module's settings,
+        // resolved while .env was loaded. Re-reading the file here would
+        // replace them with env() values that are empty once config is cached.
+        if ($this->app->configurationIsCached()) {
+            return;
+        }
+
         $configPath = module_path($this->name, config('modules.paths.generator.config.path'));
 
         if (is_dir($configPath)) {

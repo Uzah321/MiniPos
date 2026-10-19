@@ -322,6 +322,10 @@ class WindowsBundleAssetLayoutTest extends TestCase
         foreach (["'config.inc.php'", "'setup'", "'tmp'", "'examples'", "'doc'"] as $excluded) {
             $this->assertStringContainsString($excluded, $builder);
         }
+        // Its *.sql schema scripts would trip the never-ship scan, and a stray
+        // copy inside a Salexa-era nginx folder must not be staged twice.
+        $this->assertStringContainsString("(Join-Path \$phpMyAdmin 'sql')", $builder);
+        $this->assertStringContainsString("(Join-Path \$nginx 'phpmyadmin')", $builder);
         $this->assertStringContainsString('listen 127.0.0.1:{{PHPMYADMIN_PORT}};', $server);
         $this->assertStringContainsString('location ^~ /vendor/ { return 404; }', $server);
         $this->assertStringContainsString('location ~ \\.php(?:/|$) { return 404; }', $server);
