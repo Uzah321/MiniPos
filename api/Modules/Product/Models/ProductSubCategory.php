@@ -19,6 +19,7 @@ class ProductSubCategory extends Model
     protected $fillable = [
         'id',
         'company_id',
+        'brand_id',
         'category_id',
         'name',
         'code',

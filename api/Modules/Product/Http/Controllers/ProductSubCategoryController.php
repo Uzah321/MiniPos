@@ -3,6 +3,7 @@
 namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Enterprise\BrandScopeService;
 use App\Services\PublicAssetStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class ProductSubCategoryController extends Controller
             return $result;
         }
 
-        $query = ProductSubCategory::where('company_id', $company->id)
+        $query = $this->brandSubCategories()
             ->with('category')
             ->latest();
 
@@ -100,7 +101,10 @@ class ProductSubCategoryController extends Controller
             ], 422);
         }
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = app(BrandScopeService::class)->constrainBrandColumn(
+            ProductCategory::where('company_id', $company->id),
+            $this->workingBrandIds()
+        )
             ->where('id', $request->category_id)
             ->first();
 
@@ -115,6 +119,7 @@ class ProductSubCategoryController extends Controller
         try {
             $subCategory = ProductSubCategory::create([
                 'company_id' => $company->id,
+                'brand_id' => $category->brand_id ?? null,
                 'category_id' => $request->category_id,
                 'name' => $request->name,
                 'code' => $request->code,
@@ -144,7 +149,7 @@ class ProductSubCategoryController extends Controller
     {
         $company = app('company');
 
-        $subCategory = ProductSubCategory::where('company_id', $company->id)
+        $subCategory = $this->brandSubCategories()
             ->with('category')
             ->where('id', $id)
             ->first();
@@ -170,7 +175,7 @@ class ProductSubCategoryController extends Controller
             return $result;
         }
 
-        $subCategory = ProductSubCategory::where('company_id', $company->id)
+        $subCategory = $this->brandSubCategories()
             ->where('id', $id)
             ->first();
 
@@ -243,7 +248,7 @@ class ProductSubCategoryController extends Controller
             return $result;
         }
 
-        $subCategory = ProductSubCategory::where('company_id', $company->id)
+        $subCategory = $this->brandSubCategories()
             ->where('id', $id)
             ->first();
 
@@ -296,6 +301,21 @@ class ProductSubCategoryController extends Controller
         return $this->deleteSubCategoryFile($id, 'banner');
     }
 
+    /** Sub-categories of the brand the Back Office is working in, plus brand-less shared ones. */
+    private function brandSubCategories()
+    {
+        return app(BrandScopeService::class)->constrainBrandColumn(
+            ProductSubCategory::where('company_id', app('company')->id),
+            $this->workingBrandIds()
+        );
+    }
+
+    /** @return list<string> */
+    private function workingBrandIds(): array
+    {
+        return app(BrandScopeService::class)->forRequest(request(), (string) app('company')->id);
+    }
+
     private function uploadSubCategoryFile(Request $request, string $id, string $type)
     {
         $company = app('company');
@@ -305,7 +325,7 @@ class ProductSubCategoryController extends Controller
             return $result;
         }
 
-        $subCategory = ProductSubCategory::where('company_id', $company->id)
+        $subCategory = $this->brandSubCategories()
             ->where('id', $id)
             ->first();
 
@@ -427,7 +447,7 @@ class ProductSubCategoryController extends Controller
             return $result;
         }
 
-        $subCategory = ProductSubCategory::where('company_id', $company->id)
+        $subCategory = $this->brandSubCategories()
             ->where('id', $id)
             ->first();
 

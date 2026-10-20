@@ -4,6 +4,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\CompanySettingService;
+use App\Services\Enterprise\BrandScopeService;
 use App\Services\Inventory\InventoryVarianceAgentService;
 use App\Services\Sync\SyncConfigurationService;
 use Illuminate\Http\Request;
@@ -23,6 +24,9 @@ use function App\Helpers\hasPermission;
 
 class ProductImportController extends Controller
 {
+    /** Brand of the shop being imported into; its categories and new products join it. */
+    private ?string $importBrandId = null;
+
     private array $requiredHeaders = [
         'name',
         'category_name',
@@ -95,6 +99,8 @@ class ProductImportController extends Controller
         }
 
         $branchId = $this->resolveImportBranchId($request, $till);
+        $brandScope = app(BrandScopeService::class);
+        $this->importBrandId = $brandScope->primaryBrandId($brandScope->brandIdsForBranches([$branchId]));
 
         if (!$branchId) {
             return response()->json([
@@ -475,6 +481,11 @@ class ProductImportController extends Controller
                 ->update($productData);
         } else {
             DB::table('products')->insert($productData);
+            app(BrandScopeService::class)->linkProductToBrand((object) [
+                'id' => $productId,
+                'company_id' => $companyId,
+                'product_type' => $productData['product_type'] ?? null,
+            ], $this->importBrandId);
         }
 
         $this->upsertProductCost($companyId, $branchId, $productId, $row, $defaultCurrency, $openingQuantity);
@@ -910,6 +921,10 @@ class ProductImportController extends Controller
             ->where('company_id', $companyId)
             ->when(Schema::hasColumn('product_categories', 'deleted_at'), fn ($query) => $query->whereNull('deleted_at'))
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($categoryName)])
+            // Another brand's category of the same name is not this brand's.
+            ->when($this->importBrandId && Schema::hasColumn('product_categories', 'brand_id'), fn ($query) => $query
+                ->where(fn ($brand) => $brand->where('brand_id', $this->importBrandId)->orWhereNull('brand_id'))
+                ->orderByRaw('brand_id IS NULL'))
             ->first();
 
         if ($category) {
@@ -929,6 +944,7 @@ class ProductImportController extends Controller
         DB::table('product_categories')->insert([
             'id' => $id,
             'company_id' => $companyId,
+            ...(Schema::hasColumn('product_categories', 'brand_id') ? ['brand_id' => $this->importBrandId] : []),
             'name' => $categoryName,
             'code' => $this->makeCode($categoryName),
             'is_active' => true,

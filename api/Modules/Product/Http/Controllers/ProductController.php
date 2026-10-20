@@ -8106,6 +8106,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\BusinessModeBranchScopeService;
+use App\Services\Enterprise\BrandScopeService;
 use App\Services\PublicAssetStorage;
 use App\Services\ProductIdentityGenerator;
 use App\Services\Inventory\HospitalityStockIssueService;
@@ -8162,6 +8163,13 @@ class ProductController extends Controller
      */
     private function applyProductModeVisibility($query, array $branchIds)
     {
+        // A brand only works with its own products (its catalogue plus
+        // company-shared ones), never another brand's.
+        $query = app(BrandScopeService::class)->constrainProducts(
+            $query,
+            app(BrandScopeService::class)->brandIdsForBranches($branchIds)
+        );
+
         if (!Schema::hasColumn('products', 'is_global')) {
             return $query;
         }
@@ -8737,6 +8745,15 @@ class ProductController extends Controller
             $this->syncBarcodes($product, $request->barcodes ?? []);
             $this->syncSuppliers($product, $request->suppliers ?? []);
             $this->syncDiscounts($product, $request->discount_ids ?? []);
+
+            // File the new product under the brand it was created for, so
+            // the company's other brands never see it.
+            $brandScope = app(BrandScopeService::class);
+            $brandScope->linkProductToBrand($product, $brandScope->primaryBrandId(
+                $product->branch_id
+                    ? $brandScope->brandIdsForBranches([$product->branch_id])
+                    : $brandScope->forRequest($request, (string) $company->id)
+            ));
 
             if ($request->filled('break_rule')) {
                 $this->saveBreakRule($product, $request->break_rule);

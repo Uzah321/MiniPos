@@ -304,6 +304,7 @@
 namespace Modules\FoodManufacturing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Enterprise\BrandScopeService;
 use App\Services\FoodManufacturing\FoodManufacturingService;
 use App\Services\Reports\EnterpriseReportDownloadService;
 use App\Support\FiltersTableColumns;
@@ -351,8 +352,7 @@ class FoodRecipeController extends Controller
             ->get()
             ->keyBy(fn ($product) => (string) $product->id);
 
-        $recipes = FoodRecipe::query()
-            ->where('company_id', $company->id)
+        $recipes = $this->brandRecipes()
             ->where('recipe_type', 'menu')
             ->whereIn('menu_product_id', $products->keys())
             ->with(['ingredients.ingredientProduct.uom', 'menuProduct'])
@@ -440,7 +440,7 @@ class FoodRecipeController extends Controller
     {
         $company = app('company');
 
-        $query = FoodRecipe::where('company_id', $company->id)
+        $query = $this->brandRecipes()
             ->with($this->recipeDetailRelations());
 
         if ($request->filled('recipe_type')) {
@@ -556,8 +556,11 @@ class FoodRecipeController extends Controller
         }
 
         $branchId = $this->resolveBranchId($request, false);
+        // New recipes belong to the brand the Back Office is working in.
+        $brandScope = app(BrandScopeService::class);
+        $recipeBrandId = $brandScope->primaryBrandId($brandScope->forRequest($request, (string) $company->id));
 
-        return DB::transaction(function () use ($request, $company, $user, $menuProduct, $producedProduct, $service, $branchId) {
+        return DB::transaction(function () use ($request, $company, $user, $menuProduct, $producedProduct, $service, $branchId, $recipeBrandId) {
             if ($request->boolean('make_active', true)) {
                 $this->recipeFamilyQuery(
                     $company->id,
@@ -569,6 +572,7 @@ class FoodRecipeController extends Controller
 
             $recipe = FoodRecipe::create($this->onlyExistingTableColumns('food_recipes', [
                 'company_id' => $company->id,
+                'brand_id' => $recipeBrandId,
                 'menu_product_id' => $menuProduct?->id,
                 'produced_product_id' => $producedProduct?->id,
                 'name' => $request->name,
@@ -626,7 +630,7 @@ class FoodRecipeController extends Controller
     {
         $company = app('company');
 
-        $recipe = FoodRecipe::where('company_id', $company->id)
+        $recipe = $this->brandRecipes()
             ->where('id', $id)
             ->with($this->recipeDetailRelations())
             ->firstOrFail();
@@ -642,7 +646,7 @@ class FoodRecipeController extends Controller
         $company = app('company');
         $user = auth()->user();
 
-        $recipe = FoodRecipe::where('company_id', $company->id)->where('id', $id)->firstOrFail();
+        $recipe = $this->brandRecipes()->where('id', $id)->firstOrFail();
         $companyProduct = fn () => Rule::exists('products', 'id')
             ->where(fn ($query) => $query->where('company_id', $company->id));
         $companyUom = fn () => Rule::exists('uoms', 'id')
@@ -827,7 +831,7 @@ class FoodRecipeController extends Controller
     {
         $company = app('company');
 
-        $recipe = FoodRecipe::where('company_id', $company->id)->where('id', $id)->firstOrFail();
+        $recipe = $this->brandRecipes()->where('id', $id)->firstOrFail();
 
         if ($recipe->batches()->exists()) {
             return response()->json([
@@ -846,7 +850,7 @@ class FoodRecipeController extends Controller
         $company = app('company');
         $branchId = $this->resolveBranchId($request);
 
-        $recipe = FoodRecipe::where('company_id', $company->id)
+        $recipe = $this->brandRecipes()
             ->where('id', $id)
             ->with($this->recipeDetailRelations())
             ->firstOrFail();
@@ -881,7 +885,7 @@ class FoodRecipeController extends Controller
         $recipe = DB::transaction(function () use ($company, $request, $menuProductId) {
             // Resolve and lock the requested tenant recipe before changing the
             // currently active link, so a bad request cannot leave every BOM off.
-            $recipe = FoodRecipe::where('company_id', $company->id)
+            $recipe = $this->brandRecipes()
                 ->where('id', $request->recipe_id)
                 ->where('menu_product_id', $menuProductId)
                 ->where('recipe_type', 'menu')
@@ -907,6 +911,18 @@ class FoodRecipeController extends Controller
     }
 
     /** @return array<int, string> */
+    /** Recipes of the brand the Back Office is working in, plus brand-less shared ones. */
+    private function brandRecipes()
+    {
+        $company = app('company');
+        $brandScope = app(BrandScopeService::class);
+
+        return $brandScope->constrainBrandColumn(
+            FoodRecipe::where('company_id', $company->id),
+            $brandScope->forRequest(request(), (string) $company->id)
+        );
+    }
+
     private function recipeDetailRelations(): array
     {
         $relations = [

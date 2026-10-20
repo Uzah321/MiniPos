@@ -274,7 +274,7 @@ final class HospitalityCatalogImporter
     ): void
     {
         $externalCode = strtoupper((string) $record['external_code']);
-        $categoryId = $this->categoryId($companyId, (string) ($record['category'] ?: 'Imported Hospitality'));
+        $categoryId = $this->categoryId($companyId, $brandId, (string) ($record['category'] ?: 'Imported Hospitality'));
         $uomId = $this->uomId($companyId, (string) ($record['uom'] ?: 'EACH'));
         $supplierId = $this->supplierId($companyId, $record);
         $productId = $this->mappedEntityId($companyId, $brandId, $sourceSystem, 'product', $externalCode);
@@ -984,23 +984,28 @@ final class HospitalityCatalogImporter
         return array_values($aggregated);
     }
 
-    private function categoryId(string $companyId, string $name): string
+    /**
+     * Categories belong to one brand: importing a second brand's menu must
+     * never reuse (and so share) the first brand's category of the same name.
+     */
+    private function categoryId(string $companyId, string $brandId, string $name): string
     {
-        $key = $companyId.':'.mb_strtolower(trim($name));
+        $brandScoped = Schema::hasColumn('product_categories', 'brand_id');
+        $key = $companyId.':'.($brandScoped ? $brandId.':' : '').mb_strtolower(trim($name));
         if (isset($this->categoryIds[$key])) {
             return $this->categoryIds[$key];
         }
         $id = DB::table('product_categories')
             ->where('company_id', $companyId)
+            ->when($brandScoped, fn ($query) => $query->where('brand_id', $brandId))
             ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($name))])
             ->when(Schema::hasColumn('product_categories', 'deleted_at'), fn ($query) => $query->orderByRaw('deleted_at IS NULL DESC'))
             ->value('id');
-        $code = 'HOSP_'.strtoupper(substr(hash('sha256', $key), 0, 12));
         $values = $this->onlyColumns('product_categories', [
             'company_id' => $companyId,
+            'brand_id' => $brandId,
             'parent_id' => null,
             'name' => trim($name),
-            'code' => $code,
             'description' => 'Hospitality catalogue category',
             'is_active' => true,
             'deleted_at' => null,
@@ -1010,7 +1015,13 @@ final class HospitalityCatalogImporter
             DB::table('product_categories')->where('id', $id)->update($values);
         } else {
             $id = (string) Str::uuid();
-            DB::table('product_categories')->insert(['id' => $id, ...$values, 'created_at' => now()]);
+            $code = 'HOSP_'.strtoupper(substr(hash('sha256', $key), 0, 12));
+            DB::table('product_categories')->insert([
+                'id' => $id,
+                ...$values,
+                ...$this->onlyColumns('product_categories', ['code' => $code]),
+                'created_at' => now(),
+            ]);
         }
 
         return $this->categoryIds[$key] = (string) $id;

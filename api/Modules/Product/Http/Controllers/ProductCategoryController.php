@@ -3,10 +3,12 @@
 namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Enterprise\BrandScopeService;
 use App\Services\PublicAssetStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -24,7 +26,7 @@ class ProductCategoryController extends Controller
             return $result;
         }
 
-        $query = ProductCategory::where('company_id', $company->id)
+        $query = $this->brandCategories()
             ->with(['parent', 'children', 'subCategories'])
             ->latest();
 
@@ -70,13 +72,15 @@ class ProductCategoryController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('product_categories', 'name')->withoutTrashed()->where('company_id', $company->id),
+                Rule::unique('product_categories', 'name')->withoutTrashed()->where('company_id', $company->id)
+                    ->where(fn ($query) => $this->whereBrand($query, $this->workingBrandId())),
             ],
             'code' => [
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('product_categories', 'code')->withoutTrashed()->where('company_id', $company->id),
+                Rule::unique('product_categories', 'code')->withoutTrashed()->where('company_id', $company->id)
+                    ->where(fn ($query) => $this->whereBrand($query, $this->workingBrandId())),
             ],
             'description' => ['nullable', 'string'],
             'display_area' => ['nullable', 'in:front,back,both'],
@@ -96,6 +100,7 @@ class ProductCategoryController extends Controller
         try {
             $category = ProductCategory::create([
                 'company_id' => $company->id,
+                'brand_id' => $this->workingBrandId(),
                 'parent_id' => $request->parent_id,
                 'name' => $request->name,
                 'code' => $request->code,
@@ -125,7 +130,7 @@ class ProductCategoryController extends Controller
     {
         $company = app('company');
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = $this->brandCategories()
             ->with(['parent', 'children', 'subCategories'])
             ->where('id', $id)
             ->first();
@@ -151,7 +156,7 @@ class ProductCategoryController extends Controller
             return $result;
         }
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = $this->brandCategories()
             ->where('id', $id)
             ->first();
 
@@ -172,6 +177,7 @@ class ProductCategoryController extends Controller
                 'max:255',
                 Rule::unique('product_categories', 'name')->withoutTrashed()
                     ->where('company_id', $company->id)
+                    ->where(fn ($query) => $this->whereBrand($query, $category->brand_id))
                     ->ignore($category->id),
             ],
             'code' => [
@@ -180,6 +186,7 @@ class ProductCategoryController extends Controller
                 'max:100',
                 Rule::unique('product_categories', 'code')->withoutTrashed()
                     ->where('company_id', $company->id)
+                    ->where(fn ($query) => $this->whereBrand($query, $category->brand_id))
                     ->ignore($category->id),
             ],
             'description' => ['nullable', 'string'],
@@ -220,7 +227,7 @@ class ProductCategoryController extends Controller
             return $result;
         }
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = $this->brandCategories()
             ->where('id', $id)
             ->first();
 
@@ -282,7 +289,7 @@ class ProductCategoryController extends Controller
             return $result;
         }
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = $this->brandCategories()
             ->where('id', $id)
             ->first();
 
@@ -427,7 +434,7 @@ class ProductCategoryController extends Controller
             return $result;
         }
 
-        $category = ProductCategory::where('company_id', $company->id)
+        $category = $this->brandCategories()
             ->where('id', $id)
             ->first();
 
@@ -470,6 +477,36 @@ class ProductCategoryController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /** Categories of the brand the Back Office is working in, plus brand-less shared ones. */
+    private function brandCategories()
+    {
+        return app(BrandScopeService::class)->constrainBrandColumn(
+            ProductCategory::where('company_id', app('company')->id),
+            $this->workingBrandIds()
+        );
+    }
+
+    /** @return list<string> */
+    private function workingBrandIds(): array
+    {
+        return app(BrandScopeService::class)->forRequest(request(), (string) app('company')->id);
+    }
+
+    private function workingBrandId(): ?string
+    {
+        return app(BrandScopeService::class)->primaryBrandId($this->workingBrandIds());
+    }
+
+    /** Category names and codes only need to be unique within one brand. */
+    private function whereBrand($query, ?string $brandId)
+    {
+        if (! Schema::hasColumn('product_categories', 'brand_id')) {
+            return $query;
+        }
+
+        return $brandId ? $query->where('brand_id', $brandId) : $query->whereNull('brand_id');
     }
 
     private function publicAssetsRoot(): string
