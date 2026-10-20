@@ -696,6 +696,7 @@ use App\Services\License\LicenseAccessService;
 use App\Services\License\LicenseService;
 use App\Services\Shifts\ShiftPolicyService;
 use App\Services\Shifts\ShiftResolverService;
+use App\Services\Shifts\ShiftSessionOpener;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -1975,6 +1976,16 @@ class PosUserController extends Controller
                 } elseif (! $activeShiftSession->shift_configuration_id) {
                     $activeShiftSession->update(['shift_configuration_id' => $shiftConfig->id]);
                 }
+            } elseif ($isFrontOffice && $resolvedTill?->id) {
+                // Shops without shift rules still sell inside a session: open
+                // or resume the cashier's all-day shift on this till.
+                $activeShiftSession = app(ShiftSessionOpener::class)->openFor(
+                    (string) $branch->company_id,
+                    (string) $branch->id,
+                    (string) $resolvedTill->id,
+                    (string) $user->id,
+                    openingFloat: $openingFloat ?? 0,
+                );
             }
 
             $openBranchShifts = $isFrontOffice

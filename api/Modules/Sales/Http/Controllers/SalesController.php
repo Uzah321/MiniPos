@@ -4798,7 +4798,7 @@ use App\Models\MobileSaleReconciliation;
 use App\Services\Sync\MobileSaleReconciliationService;
 use App\Services\Sync\MobileSaleReplayWindow;
 use App\Services\Shifts\ShiftPolicyService;
-use App\Services\Shifts\ShiftResolverService;
+use App\Services\Shifts\ShiftSessionOpener;
 use App\Services\Sync\MobileSaleSnapshot;
 use App\Services\Zimra\ZimraReceiptService;
 use App\Services\Zimra\MobileFiscalReceiptService;
@@ -5960,27 +5960,31 @@ class SalesController extends Controller
                     cashierId: $user->id
                 );
 
-            if (!$shift) {
+            if (! $shift && $mobileSaleSnapshot) {
                 DB::rollBack();
 
-                if ($mobileSaleSnapshot) {
-                    return $this->pendingMobileSaleReconciliationResponse(
-                        $request, $authenticatedSyncNode, $user, $mobileSaleSnapshot,
-                        $mobileOccurredAt, 'HISTORICAL_SHIFT_NOT_FOUND'
-                    );
-                }
+                return $this->pendingMobileSaleReconciliationResponse(
+                    $request, $authenticatedSyncNode, $user, $mobileSaleSnapshot,
+                    $mobileOccurredAt, 'HISTORICAL_SHIFT_NOT_FOUND'
+                );
+            }
 
-                // Front Office login opens a shift only when shifts are enabled
-                // for the shop, so without them signing in again cannot help.
-                $shiftConfig = app(ShiftResolverService::class)
-                    ->getConfig((string) $company->id, (string) $till->branch_id);
-
-                return response()->json([
-                    'message' => $shiftConfig?->enable_shifts
-                        ? 'No open cashier shift session was found. Sign out and log in to Front Office again to open or resume the assigned shift.'
-                        : 'This shop has no shifts set up, so sales cannot be saved. In Back Office open Store Configuration → Shift Settings for this shop, enable shifts, then sign out of the till and sign in again.',
-                    'code' => 'SHIFT_SESSION_NOT_OPEN',
-                ], 422);
+            if (! $shift) {
+                // A signed-in cashier never loses a sale to a missing shift
+                // (signed in before shifts opened, or after a cash-up): open
+                // one now, inside this sale's transaction.
+                app(ShiftSessionOpener::class)->openFor(
+                    (string) $company->id,
+                    (string) $till->branch_id,
+                    (string) $till->id,
+                    (string) $user->id
+                );
+                $shift = $this->getOpenShift(
+                    companyId: $company->id,
+                    branchId: $till->branch_id,
+                    tillId: $till->id,
+                    cashierId: $user->id
+                );
             }
 
             if ($mobileOccurredAt) {
@@ -8161,6 +8165,8 @@ class SalesController extends Controller
                 'shift' => [
                     'id' => $shift->shift_configuration_id ?? null,
                     'session_id' => $shift->id ?? null,
+                    'shift_name' => $shift->shift_name ?? null,
+                    'opened_at' => $shift->opened_at ?? null,
                 ],
             ],
         ], $duplicate ? 200 : 201);

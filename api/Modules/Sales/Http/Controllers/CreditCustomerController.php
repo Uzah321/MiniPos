@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Reports\EnterpriseReportDownloadService;
 use App\Services\Sales\CreditCustomerService;
 use App\Services\Shifts\ShiftPolicyService;
+use App\Services\Shifts\ShiftSessionOpener;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -916,7 +917,7 @@ class CreditCustomerController extends Controller
             return null;
         }
 
-        return DB::table('pos_user_shift_sessions')
+        $find = fn () => DB::table('pos_user_shift_sessions')
             ->where('company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->when(
@@ -927,6 +928,15 @@ class CreditCustomerController extends Controller
             ->where('status', 'open')
             ->whereNull('closed_at')
             ->first();
+
+        $shift = $find();
+        if (! $shift && $branchId && $tillId) {
+            // Till work never stops for a missing shift: open the cashier's session.
+            app(ShiftSessionOpener::class)->openFor($companyId, $branchId, $tillId, $userId);
+            $shift = $find();
+        }
+
+        return $shift;
     }
 
     public function reversePayment(Request $request, string $id, string $paymentId)
