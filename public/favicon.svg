@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="title">
+  <title id="title">ServeNest</title>
+  <rect x="18" y="18" width="184" height="184" rx="42" fill="#069494"/>
+  <path d="M63 109 110 69l47 40" fill="none" stroke="#F7F2E8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M76 106v36c0 5 4 9 9 9h50c5 0 9-4 9-9v-36" fill="none" stroke="#F7F2E8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70 162c13 10 26 15 40 15s27-5 40-15" fill="none" stroke="#A9C0B2" stroke-width="7" stroke-linecap="round"/>
+  <path d="M79 173c10 7 20 10 31 10s21-3 31-10" fill="none" stroke="#A9C0B2" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="144" cy="86" r="8" fill="#D98562"/>
+</svg>

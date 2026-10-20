@@ -1,0 +1,2 @@
+import ManufacturingOrderWorkflowModal from "./ManufacturingOrderWorkflowModal";
+export default ManufacturingOrderWorkflowModal;

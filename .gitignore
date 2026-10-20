@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+.env
+.env.local
+.env.production
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.vscode/
+.idea/
+
+# Packaged builds for the installers
+build-backoffice/
+build-pos/

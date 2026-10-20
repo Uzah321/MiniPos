@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="220" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
+  <title id="title">ServeNest</title>
+  <desc id="desc">ServeNest hospitality point-of-sale logo, with a nest and house mark in forest green, cream, and terracotta.</desc>
+  <g transform="translate(18 18)">
+    <rect x="0" y="0" width="184" height="184" rx="42" fill="#069494"/>
+    <path d="M45 91 92 51l47 40" fill="none" stroke="#F7F2E8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M58 88v36c0 5 4 9 9 9h50c5 0 9-4 9-9V88" fill="none" stroke="#F7F2E8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M52 144c13 10 26 15 40 15s27-5 40-15" fill="none" stroke="#A9C0B2" stroke-width="7" stroke-linecap="round"/>
+    <path d="M61 155c10 7 20 10 31 10s21-3 31-10" fill="none" stroke="#A9C0B2" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="126" cy="68" r="8" fill="#D98562"/>
+  </g>
+  <text x="232" y="136" font-family="Aptos, Inter, Montserrat, Arial, sans-serif" font-size="76" font-weight="700" letter-spacing="-2" fill="#069494">ServeNest</text>
+  <text x="236" y="174" font-family="Aptos, Inter, Arial, sans-serif" font-size="19" font-weight="500" letter-spacing="4.2" fill="#68786F">HOSPITALITY, IN GOOD ORDER</text>
+</svg>

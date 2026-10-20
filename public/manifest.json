@@ -1,0 +1,23 @@
+{
+  "short_name": "ServeNest",
+  "name": "ServeNest Hospitality",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "servenest-static/servenest-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#069494",
+  "background_color": "#F7F2E8"
+}

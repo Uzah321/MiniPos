@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "./styles/enterprise.css";
+
+/* POS screens use firmer desktop typography for distance and touch readability. */
+.servenest-pos-surface {
+  font-weight: 650;
+  -webkit-font-smoothing: auto;
+  text-rendering: geometricPrecision;
+}
+
+.servenest-pos-surface .font-light,
+.servenest-pos-surface .font-normal {
+  font-weight: 600 !important;
+}
+
+.servenest-pos-surface .font-medium,
+.servenest-pos-surface .font-semibold {
+  font-weight: 700 !important;
+}
+
+/* Payment finalisation is a touch surface, not a back-office data grid. Keep
+   its hierarchy and hit targets consistent wherever Create Sale is launched. */
+.servenest-pos-surface .font-black,
+.pos-split-payment-panel .font-black {
+  font-weight: 800 !important;
+}
+
+.servenest-pos-surface .rounded-md,
+.pos-split-payment-panel .rounded-md {
+  border-radius: 0.375rem !important;
+}
+
+.servenest-pos-surface .rounded-lg,
+.pos-split-payment-panel .rounded-lg {
+  border-radius: 0.5rem !important;
+}
+
+.servenest-pos-surface .rounded-xl,
+.pos-split-payment-panel.rounded-xl {
+  border-radius: 0.75rem !important;
+}
+
+.servenest-pos-surface .rounded-full,
+.pos-split-payment-panel .rounded-full {
+  border-radius: 9999px !important;
+}
+
+.servenest-pos-surface .shadow-sm,
+.pos-split-payment-panel .shadow-sm {
+  box-shadow: 0 2px 6px rgba(10, 64, 64, 0.12) !important;
+}
+
+.servenest-pos-surface input[data-payment-input="true"] {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+}
+
+.pos-split-payment-panel input[data-payment-input="true"] {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+.sx-backoffice-v4 .pos-payment-method[aria-pressed="true"],
+.sx-backoffice-v4 .pos-payment-total-card,
+.sx-backoffice-v4 .pos-split-payment-header {
+  border-color: var(--sx-deep) !important;
+  background: var(--sx-deep) !important;
+  color: #fff !important;
+}
+
+.sx-backoffice-v4 .pos-payment-total-card *,
+.sx-backoffice-v4 .pos-split-payment-header * {
+  color: inherit !important;
+}
